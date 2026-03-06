@@ -1,0 +1,1170 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Trip - Ghoomne Chalo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-orange: #f28c38;
+            --dark-brown: #2d1b13;
+            --bg-light: #faf7f2;
+            --white: #ffffff;
+            --text-grey: #666;
+        }
+
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            color: var(--dark-brown);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 8%;
+            background: var(--white);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        nav span:first-child {
+            font-weight: 700;
+            color: var(--primary-orange);
+            font-size: 1.2rem;
+            text-transform: capitalize;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-grey);
+            font-size: 0.9rem;
+            margin: 0 10px;
+        }
+
+        .nav-user {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 5px 10px;
+        }
+
+        .nav-user ul {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+            min-width: 130px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            z-index: 999;
+        }
+
+        .nav-user:hover ul {
+            display: block;
+        }
+
+        .nav-user ul li a {
+            display: block;
+            padding: 8px 14px;
+            margin: 0;
+            text-decoration: none;
+            color: var(--dark-brown);
+            font-size: 0.85rem;
+        }
+
+        .nav-user ul li a:hover {
+            background: #fdf2e9;
+            color: var(--primary-orange);
+        }
+
+        .auth-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+        }
+
+        .auth-modal-content {
+            background-color: white;
+            margin: 8% auto;
+            padding: 24px;
+            border-radius: 14px;
+            width: 90%;
+            max-width: 420px;
+            position: relative;
+        }
+
+        .auth-modal-content h3 {
+            margin: 0 0 16px 0;
+            text-align: center;
+        }
+
+        .auth-close {
+            position: absolute;
+            right: 16px;
+            top: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .auth-close:hover {
+            color: var(--primary-orange);
+        }
+
+        .auth-btn {
+            background: var(--dark-brown);
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .auth-btn:hover {
+            background: var(--primary-orange);
+        }
+
+        .stepper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px 0;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .step-pill {
+            padding: 8px 20px;
+            background: #e9e4e0;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .step-pill.active {
+            background: var(--primary-orange);
+            color: white;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto 80px auto;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .step-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background: #f9f9f9;
+            font-family: inherit;
+        }
+
+        /* --- UPDATED SCROLLABLE PLAN BOX --- */
+        .plan-box {
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 16px;
+            background: #fff;
+            margin-bottom: 12px;
+            
+            /* The fix: Set height and enable scroll */
+            max-height: 450px; 
+            overflow-y: auto; 
+            scroll-behavior: smooth;
+        }
+        
+        #planContent.plan-box,
+        #finalPlanBox.plan-box {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Custom Scrollbar for a better look */
+        .plan-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        .plan-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .plan-box::-webkit-scrollbar-thumb {
+            background: var(--primary-orange);
+            border-radius: 10px;
+        }
+
+        .plan-day-section {
+            background: #f9f9f9;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .plan-day-section h4 {
+            margin: 0 0 12px 0;
+            color: var(--primary-orange);
+            font-size: 1rem;
+            border-bottom: 2px solid var(--primary-orange);
+            padding-bottom: 8px;
+        }
+
+        .plan-day-section ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .plan-day-section li {
+            margin-bottom: 6px;
+            font-size: 0.92rem;
+        }
+
+        .plan-section-card {
+            background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+            border: 1px solid #f1dfcd;
+            border-radius: 14px;
+            padding: 14px 14px 10px 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 3px 12px rgba(45, 27, 19, 0.06);
+        }
+
+        .plan-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #ebd4bd;
+            padding-bottom: 8px;
+        }
+
+        .plan-section-title {
+            margin: 0;
+            color: #2d1b13;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .plan-section-tag {
+            background: #f28c38;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+
+        .important-places {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0 0 10px 0;
+        }
+
+        .place-pill {
+            background: #fff2e2;
+            color: #8a4d14;
+            border: 1px solid #f2cfaa;
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+
+        .plan-points {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .plan-points li {
+            margin-bottom: 8px;
+            line-height: 1.45;
+            color: #2e2e2e;
+        }
+
+        .time-chip {
+            display: inline-block;
+            background: #edf6ff;
+            color: #1d4f91;
+            border: 1px solid #cde2ff;
+            border-radius: 999px;
+            padding: 1px 8px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        .summary-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .summary-metric {
+            background: #fff2e5;
+            border: 1px solid #f2d2b2;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            color: #5d3a1f;
+            font-weight: 600;
+        }
+
+        .daywise-card {
+            border: 1px solid #f5cfa6;
+            background: linear-gradient(180deg, #fffaf3 0%, #fff4e7 100%);
+        }
+
+        .daywise-card .plan-section-title {
+            color: #9a4f06;
+        }
+
+        .btn-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: inherit;
+        }
+
+        .btn-next, .btn-generate, .btn-chat-send {
+            background: var(--primary-orange);
+            color: white;
+        }
+
+        .btn-back {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-generate {
+            width: 100%;
+            margin-top: 10px;
+            padding: 16px;
+            font-size: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 15px;
+            color: var(--text-grey);
+        }
+
+        .plan-loading-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            min-height: 220px;
+            background: linear-gradient(180deg, #fff8ef 0%, #fdf2e9 100%);
+            border: 1px solid #f3dfcd;
+            border-radius: 12px;
+            color: var(--dark-brown);
+        }
+
+        .plan-loading-wrap .loader {
+            position: relative;
+            width: 90px;
+            height: 90px;
+        }
+
+        .plan-loading-wrap .loader span {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(calc(18deg * var(--i)));
+        }
+
+        .plan-loading-wrap .loader span::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-orange);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: planLoaderPulse 2s linear infinite;
+            animation-delay: calc(0.1s * var(--i));
+            box-shadow: 0 0 0 2px rgba(242, 140, 56, 0.15);
+        }
+
+        .plan-loading-wrap .loader span:nth-child(odd)::before {
+            background: var(--dark-brown);
+            box-shadow: 0 0 0 2px rgba(45, 27, 19, 0.12);
+        }
+
+        @keyframes planLoaderPulse {
+            0% {
+                transform: scale(0);
+            }
+            10% {
+                transform: scale(1.2);
+            }
+            80%, 100% {
+                transform: scale(0);
+            }
+        }
+
+        .plan-loading-wrap .rocket {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            animation: planLoaderRotate 2s linear infinite;
+            animation-delay: -1s;
+        }
+
+        @keyframes planLoaderRotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .plan-loading-wrap .rocket::before {
+            content: '✈';
+            position: absolute;
+            top: 60px;
+            left: 64px;
+            color: var(--primary-orange);
+            text-shadow: 0 2px 0 rgba(45, 27, 19, 0.12);
+            font-size: 36px;
+            transform: rotate(130deg);
+        }
+
+        .chat-message {
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        .user-message {
+            background: #e8f4fc;
+            text-align: right;
+        }
+
+        .ai-message {
+            background: #f5f5f5;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-row input {
+            flex: 1;
+        }
+
+        footer {
+            background: var(--dark-brown);
+            color: #b5a499;
+            padding: 40px 10%;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 30px;
+        }
+
+        footer h4 { color: white; margin-bottom: 12px; }
+        footer p { font-size: 0.85rem; line-height: 1.6; margin: 5px 0; }
+
+        @media (max-width: 768px) {
+            .step-content { grid-template-columns: 1fr; }
+            .container { margin: 0 12px 50px 12px; padding: 20px; }
+            .btn-row { flex-direction: column; }
+            footer { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <span>ghoomne chalo</span>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+        </div>
+        <div class="nav-user" id="navUser">
+            <span>👤</span>
+            <ul>
+                <li><a href="#" id="menuLogin">Login</a></li>
+                <li><a href="#" id="menuProfile">Profile</a></li>
+                <li><a href="#" id="menuHelp">Help</a></li>
+                <li><a href="#" id="menuLogout">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div id="loginModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close" onclick="closeLoginModal()">&times;</span>
+            <h3>Login</h3>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit" class="auth-btn">Login</button>
+            </form>
+            <p style="margin-top:12px">Don't have an account? <a href="#" onclick="showRegisterModal()">Register</a></p>
+        </div>
+    </div>
+
+    <div id="registerModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close" onclick="closeRegisterModal()">&times;</span>
+            <h3>Register</h3>
+            <form id="registerForm">
+                <input type="text" id="regUsername" placeholder="Username" required>
+                <input type="email" id="regEmail" placeholder="Email" required>
+                <input type="password" id="regPassword" placeholder="Password" required>
+                <button type="submit" class="auth-btn">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="profileModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close" onclick="closeProfileModal()">&times;</span>
+            <h3>My Profile</h3>
+            <form id="profileForm">
+                <input type="text" id="profileName" placeholder="Full Name">
+                <input type="text" id="profilePhone" placeholder="Phone Number">
+                <input type="text" id="profileAddress" placeholder="Address">
+                <select id="profileIdProof">
+                    <option value="">Select ID Proof Type</option>
+                    <option value="Aadhar">Aadhar Card</option>
+                    <option value="PAN">PAN Card</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Driving License">Driving License</option>
+                </select>
+                <input type="text" id="profileIdNumber" placeholder="ID Number">
+                <button type="submit" class="auth-btn">Save Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="stepper">
+        <div class="step-pill active">1. Trip Details</div>
+        <div class="step-pill">2. Plan & Hotels</div>
+        <div class="step-pill">3. Final Plan</div>
+    </div>
+
+    <div class="container">
+        <div id="step1" class="step" style="display: block;">
+            <h2>Trip Details</h2>
+            <p class="subtitle">Enter your trip information</p>
+            <div class="step-content">
+                <div class="input-box"><label>From</label><input type="text" id="fromCity" placeholder="Mumbai"></div>
+                <div class="input-box"><label>To</label><input type="text" id="toCity" placeholder="Kerala"></div>
+                <div class="input-box"><label>Budget (INR)</label><input type="text" id="budget" placeholder="30000"></div>
+                <div class="input-box"><label>Travel Date</label><input type="date" id="travelDate"></div>
+                <div class="input-box"><label>People</label><input type="number" id="people" placeholder="3"></div>
+                <div class="input-box"><label>Mode</label>
+                    <select id="travelMode">
+                        <option value="Car">Car</option>
+                        <option value="Train">Train</option>
+                        <option value="Aeroplane">Aeroplane</option>
+                    </select>
+                </div>
+                <div class="input-box"><label>Accommodation</label>
+                    <select id="accommodationType">
+                        <option value="Simple">Simple</option>
+                        <option value="Medium">Medium</option>
+                    </select>
+                </div>
+                <div class="input-box"><label>Duration</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="days" placeholder="Days" style="width:50%">
+                        <input type="number" id="nights" placeholder="Nights" style="width:50%">
+                    </div>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn-back" onclick="window.location.href='index.html'">Back</button>
+                <button class="btn-next" onclick="goToPlanning()">Generate Plan -></button>
+            </div>
+        </div>
+
+        <div id="step2" class="step">
+            <h2>Your Trip Plan</h2>
+            <p class="subtitle">Your complete day-wise trip plan is generated automatically from your details</p>
+            
+            <div class="plan-box" id="planContent">
+                <p style="color: #888; text-align: center;">Your trip plan will be created automatically.</p>
+            </div>
+
+            <div id="planChat" style="display: none; margin-top: 20px;">
+                <p style="margin-bottom: 8px; font-weight: 600;">Chat to modify your plan:</p>
+                <div class="plan-box" id="plannerChatBox" style="max-height: 200px;"></div>
+                <div class="chat-input-row">
+                    <input type="text" id="plannerInput" placeholder="Add beach activities...">
+                    <button class="btn-chat-send" onclick="sendPlannerMessage()">Send</button>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-back" onclick="showStep(1)">Back</button>
+                <button class="btn-next" onclick="goToFinalStep()">View Final Plan -></button>
+            </div>
+        </div>
+
+        <div id="step3" class="step">
+            <h2>Final Plan</h2>
+            <p class="subtitle">Your complete trip plan</p>
+
+            <div class="plan-box" id="finalPlanBox">
+                <p style="color: #888;">Complete step 2 to see your final plan.</p>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-back" onclick="showStep(2)">Back to Plan</button>
+                <button class="btn-next" onclick="saveFinalPlan()">Save Plan</button>
+                <button class="btn-next" onclick="startTrip()">Start Trip</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div><h4>Ghoomne Chalo</h4><p>Your AI travel companion.</p></div>
+        <div><h4>Quick Links</h4><p>Home</p><p>About</p></div>
+        <div><h4>Contact</h4><p>hello@ghoomnechalo.com</p></div>
+    </footer>
+
+    <script>
+        const API_BASE = (() => {
+            const saved = localStorage.getItem('API_BASE');
+            if (saved && saved.trim()) return saved.replace(/\/$/, '');
+            const protocol = window.location.protocol;
+            const host = (window.location.hostname || '').toLowerCase();
+            const port = window.location.port || '';
+            const isLocalHost = host === '127.0.0.1' || host === 'localhost';
+            if (isLocalHost && (protocol === 'http:' || protocol === 'https:') && port && port !== '5000') {
+                return 'http://127.0.0.1:5000';
+            }
+            if (protocol === 'http:' || protocol === 'https:') return '';
+            return 'http://127.0.0.1:5000';
+        })();
+        let currentUser = null;
+        let authToken = localStorage.getItem('token');
+        let tripData = {};
+        let currentPlan = "";
+        let plannerReady = false;
+        let finalPlanHtml = "";
+
+        checkAuth();
+
+        function showLoginModal() { document.getElementById('loginModal').style.display = 'block'; }
+        function closeLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
+        function showRegisterModal() { closeLoginModal(); document.getElementById('registerModal').style.display = 'block'; }
+        function closeRegisterModal() { document.getElementById('registerModal').style.display = 'none'; }
+        function showProfileModal() { document.getElementById('profileModal').style.display = 'block'; loadProfile(); }
+        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+
+        window.onclick = function(event) {
+            if (event.target.classList && event.target.classList.contains('auth-modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        async function checkAuth() {
+            if (!authToken) {
+                alert("Please login first to open plan page.");
+                window.location.href = "index.html";
+                return;
+            }
+            try {
+                const res = await fetch(API_BASE + '/api/auth/check', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    updateNav(true);
+                } else {
+                    logout();
+                    alert("Session expired. Please login again.");
+                    window.location.href = "index.html";
+                }
+            } catch (e) {
+                logout();
+                alert("Please login to continue.");
+                window.location.href = "index.html";
+            }
+        }
+
+        function updateNav(isLoggedIn) {
+            const navUser = document.getElementById('navUser');
+            if (isLoggedIn) {
+                navUser.innerHTML = '<span class="user-name">' + currentUser.username + ' 👤</span><ul><li><a href="#" id="menuProfile">Profile</a></li><li><a href="#" id="menuHelp">Help</a></li><li><a href="#" id="menuLogout">Logout</a></li></ul>';
+                document.getElementById('menuProfile').onclick = function(e) { e.preventDefault(); showProfileModal(); };
+                document.getElementById('menuHelp').onclick = function(e) { e.preventDefault(); alert('Help: Login first, then open Profile to update your details.'); };
+                document.getElementById('menuLogout').onclick = function(e) { e.preventDefault(); logout(); };
+            } else {
+                navUser.innerHTML = '<span>👤</span><ul><li><a href="#" id="menuLogin">Login</a></li><li><a href="#" id="menuProfile">Profile</a></li><li><a href="#" id="menuHelp">Help</a></li><li><a href="#" id="menuLogout">Logout</a></li></ul>';
+                document.getElementById('menuLogin').onclick = function(e) { e.preventDefault(); showLoginModal(); };
+                document.getElementById('menuProfile').onclick = function(e) { e.preventDefault(); showLoginModal(); };
+                document.getElementById('menuHelp').onclick = function(e) { e.preventDefault(); alert('Help: Use Login to sign in, then open Profile.'); };
+                document.getElementById('menuLogout').onclick = function(e) { e.preventDefault(); alert('You are not logged in.'); };
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await fetch(API_BASE + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', authToken);
+                    closeLoginModal();
+                    updateNav(true);
+                } else {
+                    alert(data.message || 'Login failed');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+
+        document.getElementById('registerForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            try {
+                const res = await fetch(API_BASE + '/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, email: email, password: password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Registration successful! Please login.');
+                    closeRegisterModal();
+                    showLoginModal();
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+
+        function loadProfile() {
+            if (currentUser) {
+                document.getElementById('profileName').value = currentUser.name || '';
+                document.getElementById('profilePhone').value = currentUser.phone || '';
+                document.getElementById('profileAddress').value = currentUser.address || '';
+                document.getElementById('profileIdProof').value = currentUser.id_proof_type || '';
+                document.getElementById('profileIdNumber').value = currentUser.id_proof_number || '';
+            }
+        }
+
+        document.getElementById('profileForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('profileName').value;
+            const phone = document.getElementById('profilePhone').value;
+            const address = document.getElementById('profileAddress').value;
+            const id_proof_type = document.getElementById('profileIdProof').value;
+            const id_proof_number = document.getElementById('profileIdNumber').value;
+            try {
+                const res = await fetch(API_BASE + '/api/auth/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ name: name, phone: phone, address: address, id_proof_type: id_proof_type, id_proof_number: id_proof_number })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentUser = data.user;
+                    alert('Profile updated successfully!');
+                    closeProfileModal();
+                } else {
+                    alert(data.message || 'Update failed');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('token');
+            updateNav(false);
+        }
+
+        function showStep(stepNumber) {
+            const steps = document.getElementsByClassName("step");
+            for (let i = 0; i < steps.length; i++) steps[i].style.display = "none";
+            document.getElementById("step" + stepNumber).style.display = "block";
+
+            const pills = document.getElementsByClassName("step-pill");
+            for (let i = 0; i < pills.length; i++) {
+                pills[i].classList.remove("active");
+                if (i < stepNumber) pills[i].classList.add("active");
+            }
+        }
+
+        function escapeHTML(text) {
+            const div = document.createElement("div");
+            div.innerText = text || "";
+            return div.innerHTML;
+        }
+
+        function goToPlanning() {
+            tripData = {
+                from: document.getElementById("fromCity").value.trim(),
+                to: document.getElementById("toCity").value.trim(),
+                budget: document.getElementById("budget").value.trim(),
+                date: document.getElementById("travelDate").value.trim(),
+                people: document.getElementById("people").value.trim(),
+                travelMode: document.getElementById("travelMode").value.trim(),
+                accommodationType: document.getElementById("accommodationType").value.trim(),
+                days: document.getElementById("days").value.trim(),
+                nights: document.getElementById("nights").value.trim()
+            };
+            if (!tripData.from || !tripData.to || !tripData.days) {
+                alert("Please fill From, To, and Days.");
+                return;
+            }
+            showStep(2);
+            plannerReady = false;
+            currentPlan = "";
+            document.getElementById("planChat").style.display = "none";
+            document.getElementById("plannerChatBox").innerHTML = "";
+            generateInitialPlan();
+        }
+
+        function formatPlanAsHTML(text) {
+            const rawLines = String(text || "").split("\n");
+            const lines = rawLines.map(line => line.trim()).filter(Boolean);
+            if (!lines.length) return "<p style='color:#666;'>No plan generated.</p>";
+
+            const isHeading = (line) =>
+                /^section\s*\d+/i.test(line) ||
+                /^day\s*\d+/i.test(line) ||
+                /^home\s*to\s*destination/i.test(line) ||
+                /^destination\s*to\s*home/i.test(line) ||
+                /^return\s*journey/i.test(line) ||
+                /^budget/i.test(line) ||
+                /^hotel\s*suggestions?/i.test(line) ||
+                /^summary/i.test(line) ||
+                /^\*\*.*\*\*$/.test(line);
+
+            const cleanPoint = (line) => line.replace(/^[-*•]\s*/, "").replace(/^\d+[\).\:-]?\s*/, "");
+            const normalizeHeading = (line) => line.replace(/\*\*/g, "").replace(/:$/, "").trim();
+
+            const escapeAndHighlight = (line) => {
+                const escaped = escapeHTML(line);
+                return escaped.replace(/(\b\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\b)/g, '<span class="time-chip">$1</span>');
+            };
+
+            const extractImportantPlaces = (items) => {
+                const joined = items.join(" ");
+                const placeRegex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\s(?:Beach|Fort|Temple|Palace|Lake|Market|Museum|Falls|Waterfall|Point|Garden|Street|Road|Bazar|Bazaar))\b/g;
+                const plainRegex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b/g;
+                const stop = new Set([
+                    "Day", "Section", "Home", "Destination", "Route", "Plan", "Budget", "Split", "Travel",
+                    "Stay", "Food", "Activities", "Emergency", "Lunch", "Dinner", "Summary", "Trip"
+                ]);
+
+                const out = [];
+                let m;
+                while ((m = placeRegex.exec(joined)) !== null) {
+                    const v = m[1].trim();
+                    if (!out.includes(v)) out.push(v);
+                }
+                while ((m = plainRegex.exec(joined)) !== null && out.length < 8) {
+                    const v = m[1].trim();
+                    if (stop.has(v.split(" ")[0])) continue;
+                    if (!out.includes(v)) out.push(v);
+                }
+                return out.slice(0, 8);
+            };
+
+            const blocks = [];
+            let current = { heading: "Full Trip Plan", points: [] };
+
+            for (const raw of rawLines) {
+                const line = raw.replace(/\*\*/g, "").trim();
+                if (!line) continue;
+
+                if (isHeading(line)) {
+                    if (current.points.length) blocks.push(current);
+                    current = { heading: normalizeHeading(line), points: [] };
+                } else {
+                    current.points.push(cleanPoint(line));
+                }
+            }
+            if (current.points.length) blocks.push(current);
+
+            return blocks.map((block, idx) => {
+                const places = extractImportantPlaces(block.points);
+                const isDayBlock = /^day\s*\d+/i.test(block.heading);
+                const tag = isDayBlock
+                    ? "Day Plan"
+                    : (/^section\s*\d+/i.test(block.heading) ? "Section" : "Details");
+                const placesHtml = places.length
+                    ? `<div class="important-places">${places.map(p => `<span class="place-pill">${escapeHTML(p)}</span>`).join("")}</div>`
+                    : "";
+                const pointsHtml = block.points.map(p => `<li>${escapeAndHighlight(p)}</li>`).join("");
+                return `
+                    <div class="plan-section-card ${isDayBlock ? "daywise-card" : ""}">
+                        <div class="plan-section-header">
+                            <h4 class="plan-section-title">${escapeHTML(block.heading)}</h4>
+                            <span class="plan-section-tag">${tag}</span>
+                        </div>
+                        ${placesHtml}
+                        <ul class="plan-points">${pointsHtml}</ul>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        async function generateInitialPlan() {
+            const planContent = document.getElementById("planContent");
+            const loaderStart = Date.now();
+            const minLoaderMs = 1200;
+            planContent.innerHTML = `
+                <div class="plan-loading-wrap">
+                    <div class="loader">
+                        <span style="--i:0;"></span><span style="--i:1;"></span><span style="--i:2;"></span><span style="--i:3;"></span><span style="--i:4;"></span>
+                        <span style="--i:5;"></span><span style="--i:6;"></span><span style="--i:7;"></span><span style="--i:8;"></span><span style="--i:9;"></span>
+                        <span style="--i:10;"></span><span style="--i:11;"></span><span style="--i:12;"></span><span style="--i:13;"></span><span style="--i:14;"></span>
+                        <span style="--i:15;"></span><span style="--i:16;"></span><span style="--i:17;"></span><span style="--i:18;"></span><span style="--i:19;"></span>
+                        <div class="rocket"></div>
+                    </div>
+                    <div class="loading">Generating your plan...</div>
+                </div>
+            `;
+            const prompt = `Create a complete and detailed ${tripData.days}-day point-wise trip plan.
+
+Trip details:
+- Home/Start city: ${tripData.from}
+- Destination city: ${tripData.to}
+- Budget: INR ${tripData.budget || "Not specified"}
+- Date: ${tripData.date || "Not specified"}
+- People: ${tripData.people || "Not specified"}
+- Preferred travel mode: ${tripData.travelMode || "Not specified"}
+- Accommodation preference: ${tripData.accommodationType || "Not specified"}
+- Duration: ${tripData.days} days, ${tripData.nights || "Not specified"} nights
+
+Output format rules (mandatory):
+1. Write only in point-wise format.
+2. Include SECTION 1: HOME TO DESTINATION ROUTE PLAN.
+   - Mention departure time, route, stop points, transport changes (if any), arrival estimate.
+   - Suggest 2-3 hotel options on/near the route (with area + approximate price range).
+3. Include SECTION 2: DAY-WISE FULL ITINERARY FOR ALL ${tripData.days} DAYS.
+   - For each day include time slots:
+     - 06:00-13:00 activities
+     - 13:00-14:00 lunch + rest
+     - 14:00-20:00 activities
+     - 20:00-21:00 dinner
+     - 21:00-23:00 light activities
+     - 23:00-06:00 sleep
+   - For each day suggest 2-3 nearby hotel/stay options (name, area, approximate cost).
+4. Include SECTION 3: DESTINATION TO HOME RETURN ROUTE PLAN.
+   - Mention return departure, route options, and arrival estimate.
+   - Suggest 2-3 hotel options on/near return route.
+5. Include SECTION 4: BUDGET SPLIT (travel, stay, food, activities, emergency) + quick practical tips.
+6. Do not skip any day. Do not summarize briefly. Give a full detailed plan.`;
+            try {
+                const response = await fetch(`${API_BASE}/api/planner/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: prompt })
+                });
+                const data = await response.json();
+                const elapsed = Date.now() - loaderStart;
+                if (elapsed < minLoaderMs) {
+                    await new Promise(resolve => setTimeout(resolve, minLoaderMs - elapsed));
+                }
+                currentPlan = data.reply || "";
+                plannerReady = true;
+                planContent.innerHTML = formatPlanAsHTML(currentPlan);
+                document.getElementById("plannerChatBox").innerHTML = '<div class="chat-message ai-message">AI: Plan generated.</div>';
+                document.getElementById("planChat").style.display = "block";
+            } catch (error) {
+                const elapsed = Date.now() - loaderStart;
+                if (elapsed < minLoaderMs) {
+                    await new Promise(resolve => setTimeout(resolve, minLoaderMs - elapsed));
+                }
+                planContent.innerHTML = '<p style="color:red;">Error connecting to AI backend.</p>';
+            }
+        }
+
+        async function sendPlannerMessage() {
+            const input = document.getElementById("plannerInput");
+            const message = input.value.trim();
+            if (!message) return;
+            const box = document.getElementById("plannerChatBox");
+            const userMsg = document.createElement("div");
+            userMsg.className = "chat-message user-message";
+            userMsg.innerText = message;
+            box.appendChild(userMsg);
+            input.value = "";
+            try {
+                const prompt = `Update the following trip plan based on user request.
+
+Current plan:
+${currentPlan}
+
+User request:
+${message}
+
+Rules:
+- Keep full point-wise format.
+- Keep all days fully detailed.
+- Keep Home to Destination and Destination to Home sections.
+- Keep hotel suggestions (2-3 options) for route/day/return where relevant.
+- Return the full updated plan, not only partial edits.`;
+                const response = await fetch(`${API_BASE}/api/planner/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: prompt })
+                });
+                const data = await response.json();
+                currentPlan = data.reply || currentPlan;
+                document.getElementById("planContent").innerHTML = formatPlanAsHTML(currentPlan);
+                // Auto-scroll to bottom of content when updated
+                document.getElementById("planContent").scrollTop = document.getElementById("planContent").scrollHeight;
+            } catch (error) { alert("AI error."); }
+        }
+
+        function buildFinalPlanHtml() {
+            return `
+                <div class="plan-section-card">
+                    <div class="plan-section-header">
+                        <h4 class="plan-section-title">Trip Summary</h4>
+                        <span class="plan-section-tag">Overview</span>
+                    </div>
+                    <div class="summary-metrics">
+                        <div class="summary-metric">Route: ${escapeHTML(tripData.from)} to ${escapeHTML(tripData.to)}</div>
+                        <div class="summary-metric">Budget: INR ${escapeHTML(tripData.budget || "Not specified")}</div>
+                        <div class="summary-metric">Duration: ${escapeHTML(tripData.days || "-")} Days</div>
+                        <div class="summary-metric">People: ${escapeHTML(tripData.people || "Not specified")}</div>
+                    </div>
+                </div>
+                ${formatPlanAsHTML(currentPlan)}
+            `;
+        }
+
+        function goToFinalStep() {
+            if (!plannerReady) { alert("Generate plan first."); return; }
+            finalPlanHtml = buildFinalPlanHtml();
+            document.getElementById("finalPlanBox").innerHTML = finalPlanHtml;
+            showStep(3);
+        }
+
+        function saveFinalPlan(showMessage = true) {
+            if (!plannerReady || !currentPlan) {
+                alert("Generate and open final plan first.");
+                return false;
+            }
+            if (!finalPlanHtml) {
+                finalPlanHtml = buildFinalPlanHtml();
+            }
+            localStorage.setItem("activeTripSession", JSON.stringify({
+                tripData: tripData,
+                currentPlan: currentPlan,
+                finalPlanHtml: finalPlanHtml,
+                savedAt: new Date().toISOString()
+            }));
+            localStorage.setItem("finalTripPlan", finalPlanHtml);
+            if (showMessage) {
+                alert("Plan saved successfully!");
+            }
+            return true;
+        }
+
+        function startTrip() {
+            if (currentPlan && !saveFinalPlan(false)) return;
+            window.location.href = "assistant.html";
+        }
+    </script>
+</body>
+</html>
+
+
