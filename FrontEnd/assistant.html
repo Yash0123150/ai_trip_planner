@@ -1,0 +1,2607 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Assistant - Ghoomne Chalo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <style>
+        :root {
+            --primary-orange: #f28c38;
+            --dark-brown: #2d1b13;
+            --bg-light: #faf7f2;
+            --white: #ffffff;
+            --border-color: #eee;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--dark-brown);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5%;
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+
+        nav span:first-child {
+            font-weight: 700;
+            color: var(--primary-orange);
+            font-size: 1.3rem;
+            text-transform: capitalize;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #555;
+            font-size: 0.9rem;
+            margin: 0 15px;
+        }
+        .nav-user {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 5px 10px;
+        }
+
+        .nav-user ul {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            list-style: none;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 10px 0;
+            min-width: 150px;
+        }
+
+        .nav-user:hover ul {
+            display: block;
+        }
+
+        .nav-user ul li a {
+            display: block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: var(--dark-brown);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .nav-user ul li a:hover {
+            background: #fdf2e9;
+            color: var(--primary-orange);
+        }
+
+        .nav-user.logged-in .user-name {
+            color: var(--primary-orange);
+        }
+
+        .auth-modal {
+            display: none;
+            position: fixed;
+            z-index: 30000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+        }
+
+        .auth-modal-content {
+            background-color: white;
+            margin: 7% auto;
+            padding: 24px;
+            border-radius: 14px;
+            width: 90%;
+            max-width: 420px;
+            position: relative;
+            color: var(--dark-brown);
+        }
+
+        .auth-modal-content h3 {
+            margin: 0 0 16px 0;
+            text-align: center;
+        }
+
+        .auth-close {
+            position: absolute;
+            right: 16px;
+            top: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .auth-close:hover {
+            color: var(--primary-orange);
+        }
+
+        .auth-btn {
+            background: var(--dark-brown);
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .auth-btn:hover {
+            background: var(--primary-orange);
+        }
+
+        .auth-modal-content input,
+        .auth-modal-content select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        /* Enhanced Trip Status Bar */
+        .trip-status-bar {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 12px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .trip-status-bar .location-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .trip-status-bar .location-info span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trip-status-bar .distance-info {
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .eta-info {
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #10b981;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .live-indicator::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-area {
+            flex: 0 0 65%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            gap: 12px;
+            background: linear-gradient(180deg, #faf7f2 0%, #f5f0e8 100%);
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 1.6rem;
+            color: var(--dark-brown);
+        }
+
+        .chat-header p {
+            color: #888;
+            font-size: 0.9rem;
+            margin: 5px 0 8px 0;
+        }
+
+        .message {
+            background: var(--white);
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            max-width: 85%;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.ai-message {
+            border-left: 4px solid var(--primary-orange);
+            background: linear-gradient(135deg, #fffbf5 0%, #fff 100%);
+        }
+
+        .message.user-message {
+            margin-left: auto;
+            background: linear-gradient(135deg, #e8f4fc 0%, #d4ecf9 100%);
+            border-left: none;
+            border-right: 4px solid #3498db;
+        }
+        .image-gallery-message { border-left: 4px solid #f28c38; background: linear-gradient(135deg, #fffaf3 0%, #fff 100%); }
+        .image-gallery-title { font-size: 0.85rem; color: #7a5a2a; margin-bottom: 10px; font-weight: 600; }
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+        .image-card {
+            border: 1px solid #f0e2cf; border-radius: 10px; overflow: hidden; background: #fff;
+            cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .image-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+        .image-card img { width: 100%; height: 90px; object-fit: cover; display: block; }
+        .image-card-caption { padding: 6px 8px; font-size: 0.72rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #imagePreviewModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.86); z-index: 22000; align-items: center; justify-content: center; padding: 20px;
+        }
+        #imagePreviewModal.active { display: flex; }
+        .image-preview-box {
+            position: relative; width: min(920px, 96vw); background: #fff; border-radius: 14px;
+            overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+        }
+        .image-preview-box img { width: 100%; max-height: 72vh; object-fit: contain; background: #111; display: block; }
+        .image-preview-meta { padding: 10px 14px; font-size: 0.85rem; color: #555; border-top: 1px solid #eee; }
+        .image-preview-close {
+            position: absolute; top: 10px; right: 10px; width: 34px; height: 34px;
+            border: none; border-radius: 50%; background: #ef4444; color: #fff; font-weight: 700; cursor: pointer;
+        }
+
+        .sidebar {
+            flex: 0 0 35%;
+            background: var(--white);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #aaa;
+            margin-bottom: 6px;
+            padding-left: 8px;
+            letter-spacing: 1px;
+        }
+
+        .sidebar button {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            background: #fafafa;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: #444;
+            transition: all 0.3s;
+            gap: 12px;
+        }
+
+        .sidebar button:hover {
+            background: linear-gradient(135deg, #fff5eb 0%, #ffe8d6 100%);
+            color: var(--primary-orange);
+            border-color: var(--primary-orange);
+            transform: translateX(5px);
+        }
+
+        .sidebar button span {
+            font-size: 1.2rem;
+        }
+
+        /* Enhanced Location Panel */
+        .location-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .location-panel h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.9rem;
+            color: var(--primary-orange);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .location-panel .live-badge {
+            background: #10b981;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .location-panel .current-loc {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .location-panel .coords {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .location-panel .accuracy {
+            font-size: 0.75rem;
+            color: #10b981;
+            margin-top: 5px;
+        }
+
+        /* Mini Map in Sidebar */
+        .mini-map-container {
+            width: 100%;
+            height: 180px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 2px solid #eee;
+        }
+
+        #miniMap {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Voice Input Styles */
+        .voice-btn {
+            background: var(--primary-orange);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(242, 140, 56, 0.4);
+        }
+
+        .voice-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(242, 140, 56, 0.5);
+        }
+
+        .voice-btn.listening {
+            background: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .input-bar {
+            padding: 16px 5%;
+            background: var(--white);
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid var(--border-color);
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 62px 14px 20px;
+            border-radius: 24px;
+            border: 2px solid #eee;
+            outline: none;
+            font-size: 0.94rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--primary-orange);
+        }
+
+        .input-voice-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            font-size: 1rem;
+            box-shadow: none;
+            z-index: 2;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary-orange), #ff6b35);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(242, 140, 56, 0.4);
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Enhanced Full Screen Map Modal */
+        #mapModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+        }
+
+        #mapModal.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+        }
+
+        .map-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-route-info {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.8);
+            margin-top: 5px;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .map-control-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .map-control-btn:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .close-map-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .close-map-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        #fullMap {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Enhanced Map Legend */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10001;
+            min-width: 180px;
+        }
+
+        .map-legend h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.85rem;
+            color: var(--dark-brown);
+        }
+
+        .map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            font-size: 0.8rem;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .legend-dot.origin { background: #10b981; }
+        .legend-dot.destination { background: #ef4444; }
+        .legend-dot.current { background: #3b82f6; }
+        .legend-dot.route { background: var(--primary-orange); width: 20px; height: 6px; border-radius: 3px; }
+
+        /* Navigation Panel */
+        .nav-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10001;
+            min-width: 250px;
+            display: none;
+        }
+
+        .nav-panel.active {
+            display: block;
+        }
+
+        .nav-panel h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.9rem;
+            color: var(--dark-brown);
+        }
+
+        .nav-instruction {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .nav-instruction .icon {
+            font-size: 1.5rem;
+        }
+
+        .nav-instruction .text {
+            font-size: 0.85rem;
+            color: #444;
+        }
+
+        .nav-instruction .distance {
+            font-size: 0.8rem;
+            color: var(--primary-orange);
+            font-weight: 600;
+        }
+
+        /* Route Stats */
+        .route-stats {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10001;
+            display: flex;
+            gap: 20px;
+        }
+
+        .route-stat {
+            text-align: center;
+        }
+
+        .route-stat .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-orange);
+        }
+
+        .route-stat .label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* Final Plan Modal Formatting (matches plan page) */
+        #finalPlanContent.plan-box {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 14px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        #finalPlanContent .plan-section-card {
+            background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+            border: 1px solid #f1dfcd;
+            border-radius: 14px;
+            padding: 14px 14px 10px 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 3px 12px rgba(45, 27, 19, 0.06);
+        }
+
+        #finalPlanContent .plan-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #ebd4bd;
+            padding-bottom: 8px;
+        }
+
+        #finalPlanContent .plan-section-title {
+            margin: 0;
+            color: #2d1b13;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        #finalPlanContent .plan-section-tag {
+            background: #f28c38;
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+
+        #finalPlanContent .important-places {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0 0 10px 0;
+        }
+
+        #finalPlanContent .place-pill {
+            background: #fff2e2;
+            color: #8a4d14;
+            border: 1px solid #f2cfaa;
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+
+        #finalPlanContent .plan-points {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        #finalPlanContent .plan-points li {
+            margin-bottom: 8px;
+            line-height: 1.45;
+            color: #2e2e2e;
+        }
+
+        #finalPlanContent .time-chip {
+            display: inline-block;
+            background: #edf6ff;
+            color: #1d4f91;
+            border: 1px solid #cde2ff;
+            border-radius: 999px;
+            padding: 1px 8px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        #finalPlanContent .summary-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        #finalPlanContent .summary-metric {
+            background: #fff2e5;
+            border: 1px solid #f2d2b2;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            color: #5d3a1f;
+            font-weight: 600;
+        }
+
+        #finalPlanContent .daywise-card {
+            border: 1px solid #f5cfa6;
+            background: linear-gradient(180deg, #fffaf3 0%, #fff4e7 100%);
+        }
+
+        #finalPlanContent .daywise-card .plan-section-title {
+            color: #9a4f06;
+        }
+
+        /* Backward compatibility for older saved plans */
+        #finalPlanContent .plan-day-section {
+            background: #f9f9f9;
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #f0e5d8;
+        }
+
+        #finalPlanContent .plan-day-section h4 {
+            margin: 0 0 10px 0;
+            color: var(--primary-orange);
+            border-bottom: 2px solid #f2d2b2;
+            padding-bottom: 6px;
+        }
+
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .chat-area, .sidebar {
+                flex: none;
+                width: auto;
+            }
+
+            .trip-status-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .route-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+        <nav>
+        <span>ghoomne chalo</span>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="plan.html">Plan Trip</a>
+        </div>
+        <div class="nav-user" id="navUser">
+            <span>&#128100;</span>
+            <ul>
+                <li><a href="#" id="menuLogin">Login</a></li>
+                <li><a href="#" id="menuProfile">Profile</a></li>
+                <li><a href="#" id="menuHelp">Help</a></li>
+                <li><a href="#" id="menuLogout">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div id="loginModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close" onclick="closeLoginModal()">&times;</span>
+            <h3>Login</h3>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit" class="auth-btn">Login</button>
+            </form>
+            <p style="margin-top:12px">Don't have an account? <a href="#" onclick="showRegisterModal()">Register</a></p>
+        </div>
+    </div>
+
+    <div id="registerModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close" onclick="closeRegisterModal()">&times;</span>
+            <h3>Register</h3>
+            <form id="registerForm">
+                <input type="text" id="regUsername" placeholder="Username" required>
+                <input type="email" id="regEmail" placeholder="Email" required>
+                <input type="password" id="regPassword" placeholder="Password" required>
+                <button type="submit" class="auth-btn">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="profileModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close" onclick="closeProfileModal()">&times;</span>
+            <h3>My Profile</h3>
+            <form id="profileForm">
+                <input type="text" id="profileName" placeholder="Full Name">
+                <input type="text" id="profilePhone" placeholder="Phone Number">
+                <input type="text" id="profileAddress" placeholder="Address">
+                <select id="profileIdProof">
+                    <option value="">Select ID Proof Type</option>
+                    <option value="Aadhar">Aadhar Card</option>
+                    <option value="PAN">PAN Card</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Driving License">Driving License</option>
+                </select>
+                <input type="text" id="profileIdNumber" placeholder="ID Number">
+                <button type="submit" class="auth-btn">Save Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Enhanced Trip Status Bar -->
+    <div class="trip-status-bar" id="tripStatusBar" style="display: none;">
+        <div class="location-info">
+            <span class="live-indicator">LIVE</span>
+            <span>📍 <strong id="currentLocation">Detecting...</strong></span>
+            <span>🛣️ <strong id="distanceCovered">0</strong> km</span>
+        </div>
+        <div class="eta-info">
+            ⏱️ <span id="eta">--:--</span> ETA
+        </div>
+        <div class="distance-info">
+            🚗 <span id="remainingDistance">--</span> km left
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="chat-area" id="assistantChatArea">
+            <div class="chat-header">
+                <h2>🎒 Trip Assistant</h2>
+                <p>Your AI travel companion - Ask me anything!</p>
+            </div>
+            
+            <div class="message ai-message" id="assistantWelcome">
+                Hello! 👋 I'm your AI trip assistant. How can I help you today?
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <!-- Mini Map -->
+            <div class="mini-map-container">
+                <div id="miniMap"></div>
+            </div>
+
+            <!-- Enhanced Location Panel -->
+            <div class="location-panel">
+                <h4>📍 Your Location <span class="live-badge">LIVE</span></h4>
+                <div class="current-loc" id="currentLocDisplay">
+                    <span>🟢 Detecting...</span>
+                </div>
+                <div class="coords" id="coordsDisplay">Waiting for GPS...</div>
+                <div class="accuracy" id="accuracyDisplay">Accuracy: --</div>
+            </div>
+
+            <h3>Quick Actions</h3>
+            <button onclick="openFullMap()"><span>🗺️</span> Show Full Map</button>
+            <button onclick="startNavigation()"><span>🧭</span> Start Navigation</button>
+            <button onclick="handleQuickAction('finalPlan')"><span>🧾</span> Final Plan</button>
+            <button onclick="handleQuickAction('weather')"><span>🌤️</span> Weather Info</button>
+            <button onclick="handleQuickAction('food')"><span>🍜</span> Find Food</button>
+            <button onclick="handleQuickAction('hotels')"><span>🏨</span> Nearby Hotels</button>
+            <button onclick="handleQuickAction('places')"><span>🏛️</span> Best Places</button>
+            <button onclick="openBookingSection()"><span>🎫</span> Book Tickets</button>
+            <button onclick="handleQuickAction('emergency')"><span>🚨</span> Emergency</button>
+        </div>
+    </div>
+
+    <div class="input-bar">
+        <div class="input-wrapper">
+            <input type="text" id="assistantInput" placeholder="Ask me anything about your trip...">
+            <button class="voice-btn input-voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice Input">🎤</button>
+        </div>
+        <button class="voice-btn" id="speakBtn" onclick="toggleSpeak()" title="Voice Output">🔊</button>
+        <button class="send-btn" onclick="sendAssistantMessage()">➤</button>
+    </div>
+
+    <!-- Enhanced Full Screen Map Modal -->
+    <div id="mapModal">
+        <div class="map-header">
+            <div>
+                <h3>🗺️ Live Navigation</h3>
+                <div class="map-route-info" id="routeInfo">Calculating route...</div>
+            </div>
+            <div class="map-controls">
+                <button class="map-control-btn" onclick="recenterMap()">📍 Recenter</button>
+                <button class="map-control-btn" onclick="toggleSatellite()">🛰️ Satellite</button>
+                <button class="close-map-btn" onclick="closeFullMap()">✕</button>
+            </div>
+        </div>
+        <div id="fullMap"></div>
+        
+        <!-- Map Legend -->
+        <div class="map-legend">
+            <h4>Legend</h4>
+            <div class="map-legend-item"><span class="legend-dot origin"></span> Origin</div>
+            <div class="map-legend-item"><span class="legend-dot destination"></span> Destination</div>
+            <div class="map-legend-item"><span class="legend-dot current"></span> Your Location</div>
+            <div class="map-legend-item"><span class="legend-dot route"></span> Route</div>
+        </div>
+
+        <!-- Navigation Instructions Panel -->
+        <div class="nav-panel" id="navPanel">
+            <h4>🧭 Next Turn</h4>
+            <div class="nav-instruction">
+                <span class="icon" id="navIcon">⬆️</span>
+                <div>
+                    <div class="text" id="navText">Head north</div>
+                    <div class="distance" id="navDistance">500m</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Route Stats -->
+        <div class="route-stats" id="routeStats">
+            <div class="route-stat">
+                <div class="value" id="statDistance">--</div>
+                <div class="label">km left</div>
+            </div>
+            <div class="route-stat">
+                <div class="value" id="statTime">--</div>
+                <div class="label">min ETA</div>
+            </div>
+            <div class="route-stat">
+                <div class="value" id="statSpeed">0</div>
+                <div class="label">km/h</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Routing Machine -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
+    <!-- Booking Section Modal -->
+    <div id="bookingModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:20000;overflow-y:auto;padding:20px;">
+        <div style="max-width:900px;margin:20px auto;background:white;border-radius:16px;padding:24px;position:relative;">
+            <button onclick="closeBookingSection()" style="position:absolute;top:14px;right:18px;background:#ef4444;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;">X</button>
+            <h2 style="color:#2d1b13;margin-bottom:6px;">Demo Booking Studio</h2>
+            <p style="color:#666;margin-bottom:10px;">In-page booking flow with real provider data. No real payment or live reservation.</p>
+            <div id="bookingStepPills" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+            <div style="background:#fff8ef;border:1px solid #ffd7ad;border-radius:10px;padding:10px 12px;font-size:0.86rem;color:#7c4a16;margin-bottom:16px;">
+                Demo only: PDF confirmation is generated. Email delivery works when SMTP is configured on backend.
+            </div>
+            <div id="bookingFlowRoot"></div>
+        </div>
+    </div>
+
+    <div id="finalPlanModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:20010;overflow-y:auto;padding:20px;">
+        <div style="max-width:950px;margin:20px auto;background:white;border-radius:16px;padding:24px;position:relative;">
+            <button onclick="closeFinalPlanModal()" style="position:absolute;top:14px;right:18px;background:#ef4444;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;">X</button>
+            <h2 style="color:#2d1b13;margin-bottom:6px;">Final Trip Plan</h2>
+            <p style="color:#666;margin-bottom:14px;">Your saved final plan from the planning page.</p>
+            <div id="finalPlanContent" class="plan-box" style="max-height:70vh;overflow-y:auto;"></div>
+        </div>
+    </div>
+    <div id="imagePreviewModal" onclick="closeImagePreview()">
+        <div class="image-preview-box" onclick="event.stopPropagation()">
+            <button class="image-preview-close" onclick="closeImagePreview()">X</button>
+            <img id="imagePreviewEl" src="" alt="Preview">
+            <div class="image-preview-meta" id="imagePreviewMeta"></div>
+        </div>
+    </div>
+    <script>
+        const API_BASE = "http://127.0.0.1:5000";
+        let currentUser = null;
+        let authToken = localStorage.getItem('token');
+
+        checkAuth();
+
+        function showLoginModal() { document.getElementById('loginModal').style.display = 'block'; }
+        function closeLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
+        function showRegisterModal() { closeLoginModal(); document.getElementById('registerModal').style.display = 'block'; }
+        function closeRegisterModal() { document.getElementById('registerModal').style.display = 'none'; }
+        function showProfileModal() { document.getElementById('profileModal').style.display = 'block'; loadProfile(); }
+        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+
+        window.addEventListener('click', function(event) {
+            if (event.target.classList && event.target.classList.contains('auth-modal')) {
+                event.target.style.display = 'none';
+            }
+        });
+
+        async function checkAuth() {
+            if (!authToken) {
+                updateNav(false);
+                return;
+            }
+            try {
+                const res = await fetch(API_BASE + '/api/auth/check', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    updateNav(true);
+                } else {
+                    logout();
+                }
+            } catch (e) {
+                logout();
+            }
+        }
+
+        function updateNav(isLoggedIn) {
+            const navUser = document.getElementById('navUser');
+            if (isLoggedIn) {
+                navUser.innerHTML = '<span class="user-name">' + currentUser.username + ' &#128100;</span><ul><li><a href="#" id="menuProfile">Profile</a></li><li><a href="#" id="menuHelp">Help</a></li><li><a href="#" id="menuLogout">Logout</a></li></ul>';
+                document.getElementById('menuProfile').onclick = function(e) { e.preventDefault(); showProfileModal(); };
+                document.getElementById('menuHelp').onclick = function(e) { e.preventDefault(); alert('Help: Login first, then open Profile to update your details.'); };
+                document.getElementById('menuLogout').onclick = function(e) { e.preventDefault(); logout(); };
+            } else {
+                navUser.innerHTML = '<span>&#128100;</span><ul><li><a href="#" id="menuLogin">Login</a></li><li><a href="#" id="menuProfile">Profile</a></li><li><a href="#" id="menuHelp">Help</a></li><li><a href="#" id="menuLogout">Logout</a></li></ul>';
+                document.getElementById('menuLogin').onclick = function(e) { e.preventDefault(); showLoginModal(); };
+                document.getElementById('menuProfile').onclick = function(e) { e.preventDefault(); showLoginModal(); };
+                document.getElementById('menuHelp').onclick = function(e) { e.preventDefault(); alert('Help: Use Login to sign in, then open Profile.'); };
+                document.getElementById('menuLogout').onclick = function(e) { e.preventDefault(); alert('You are not logged in.'); };
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await fetch(API_BASE + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', authToken);
+                    closeLoginModal();
+                    updateNav(true);
+                } else {
+                    alert(data.message || 'Login failed');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+
+        document.getElementById('registerForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            try {
+                const res = await fetch(API_BASE + '/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, email: email, password: password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Registration successful! Please login.');
+                    closeRegisterModal();
+                    showLoginModal();
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+
+        function loadProfile() {
+            if (currentUser) {
+                document.getElementById('profileName').value = currentUser.name || '';
+                document.getElementById('profilePhone').value = currentUser.phone || '';
+                document.getElementById('profileAddress').value = currentUser.address || '';
+                document.getElementById('profileIdProof').value = currentUser.id_proof_type || '';
+                document.getElementById('profileIdNumber').value = currentUser.id_proof_number || '';
+            }
+        }
+
+        document.getElementById('profileForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('profileName').value;
+            const phone = document.getElementById('profilePhone').value;
+            const address = document.getElementById('profileAddress').value;
+            const id_proof_type = document.getElementById('profileIdProof').value;
+            const id_proof_number = document.getElementById('profileIdNumber').value;
+            try {
+                const res = await fetch(API_BASE + '/api/auth/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ name: name, phone: phone, address: address, id_proof_type: id_proof_type, id_proof_number: id_proof_number })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentUser = data.user;
+                    alert('Profile updated successfully!');
+                    closeProfileModal();
+                    updateNav(true);
+                } else {
+                    alert(data.message || 'Update failed');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('token');
+            updateNav(false);
+        }
+        
+        // State
+        let currentPosition = null;
+        let miniMap = null;
+        let fullMap = null;
+        let miniMarker = null;
+        let originMarker = null;
+        let destinationMarker = null;
+        let currentMarker = null;
+        let routeLine = null;
+        let routeControl = null;
+        let totalDistance = 0;
+        let lastPosition = null;
+        let lastUpdateTime = null;
+        let isListening = false;
+        let isSpeaking = true;
+        let isNavigating = false;
+        let speechRecognition = null;
+        let tripSession = null;
+        let placeMarkers = [];
+        let currentSpeed = 0;
+        let routeData = null;
+        let tileLayer = null;
+        let satelliteLayer = null;
+        
+        // City coordinates for major Indian cities
+        const cityCoords = {
+            'mumbai': { lat: 19.0760, lng: 72.8777 },
+            'delhi': { lat: 28.7041, lng: 77.1025 },
+            'goa': { lat: 15.2993, lng: 74.1240 },
+            'bangalore': { lat: 12.9716, lng: 77.5946 },
+            'hyderabad': { lat: 17.3850, lng: 78.4867 },
+            'chennai': { lat: 13.0827, lng: 80.2707 },
+            'kolkata': { lat: 22.5726, lng: 88.3639 },
+            'jaipur': { lat: 26.9124, lng: 75.7873 },
+            'udaipur': { lat: 24.5854, lng: 73.7125 },
+            'manali': { lat: 32.2396, lng: 77.1887 },
+            'shimla': { lat: 31.1048, lng: 77.1734 },
+            'kerala': { lat: 10.8505, lng: 76.2711 },
+            'varanasi': { lat: 25.3176, lng: 82.9739 },
+            'agra': { lat: 27.1767, lng: 78.0081 },
+            'rajasthan': { lat: 27.0238, lng: 74.2179 },
+            'hampi': { lat: 15.3350, lng: 76.4600 },
+            'pune': { lat: 18.5204, lng: 73.8567 },
+            'ahmedabad': { lat: 23.0225, lng: 72.5714 },
+            'surat': { lat: 21.1702, lng: 72.8311 },
+            'lucknow': { lat: 26.8467, lng: 80.9462 }
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initMiniMap();
+            initTrip();
+            initSpeechRecognition();
+            detectLocation();
+            updateSpeakButtonUI();
+        });
+
+        function getTripSession() {
+            try {
+                const raw = localStorage.getItem("activeTripSession");
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Initialize Mini Map
+        function initMiniMap() {
+            miniMap = L.map('miniMap', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([20.5937, 78.9629], 5);
+            
+            // Use CartoDB positron tiles for clean look
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19
+            }).addTo(miniMap);
+
+            // Custom marker icon
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: '<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+            
+            miniMarker = L.marker([20.5937, 78.9629], { icon: customIcon }).addTo(miniMap);
+        }
+
+        async function initTrip() {
+            tripSession = getTripSession();
+            if (tripSession && tripSession.tripData) {
+                document.getElementById('tripStatusBar').style.display = 'flex';
+                
+                // Calculate total trip distance
+                const totalDist = calculateEstimatedDistance(tripSession.tripData.from, tripSession.tripData.to);
+                document.getElementById('remainingDistance').textContent = totalDist;
+                
+                // Update route info
+                document.getElementById('routeInfo').textContent = 
+                    `${tripSession.tripData.from} → ${tripSession.tripData.to} (${totalDist} km)`;
+                
+                // Add origin/destination to mini map
+                const originCoords = getCityCoords(tripSession.tripData.from);
+                const destCoords = getCityCoords(tripSession.tripData.to);
+                
+                if (originCoords) {
+                    const originIcon = L.divIcon({
+                        className: 'origin-marker',
+                        html: '<div style="background:#10b981;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    L.marker([originCoords.lat, originCoords.lng], { icon: originIcon }).addTo(miniMap)
+                        .bindPopup(`<b>${tripSession.tripData.from}</b>`);
+                }
+                
+                if (destCoords) {
+                    const destIcon = L.divIcon({
+                        className: 'dest-marker',
+                        html: '<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    L.marker([destCoords.lat, destCoords.lng], { icon: destIcon }).addTo(miniMap)
+                        .bindPopup(`<b>${tripSession.tripData.to}</b>`);
+                }
+                
+                // Fit bounds
+                if (originCoords && destCoords) {
+                    miniMap.fitBounds([
+                        [originCoords.lat, originCoords.lng],
+                        [destCoords.lat, destCoords.lng]
+                    ], { padding: [30, 30] });
+                }
+                
+                // Greet the user
+                const greeting = `🎉 Welcome to your trip from ${tripSession.tripData.from} to ${tripSession.tripData.to}! 
+                
+I'm your AI assistant and I'll help you throughout your journey. 
+- Ask me about places to visit
+- Find restaurants and hotels
+- Get weather updates
+- Click "Show Full Map" for live navigation!
+
+Where would you like to go first?`;
+                
+                addMessage(greeting, 'ai');
+                speakText(greeting);
+            } else {
+                const greeting = 'Voice assistant is active. Ask me for routes, places, food, weather, or bookings.';
+                addMessage(greeting, 'ai');
+                speakText(greeting);
+            }
+        }
+
+        function getCityCoords(cityName) {
+            if (!cityName) return null;
+            const key = cityName.toLowerCase().split(' ')[0];
+            return cityCoords[key] || null;
+        }
+
+        function calculateEstimatedDistance(from, to) {
+            const fromCoords = getCityCoords(from);
+            const toCoords = getCityCoords(to);
+            
+            if (fromCoords && toCoords) {
+                return Math.round(calculateDistance(fromCoords, toCoords));
+            }
+            
+            // Fallback to rough estimate
+            const cities = {
+                'mumbai': 0, 'delhi': 1400, 'goa': 600, 'bangalore': 350,
+                'hyderabad': 650, 'chennai': 350, 'kolkata': 1650, 'jaipur': 1200,
+                'udaipur': 1300, 'manali': 2000, 'shimla': 1900, 'kerala': 800,
+                'varanasi': 1200, 'agra': 1400, 'rajasthan': 1000, 'hampi': 350
+            };
+            const fromKey = from.toLowerCase().split(' ')[0];
+            const toKey = to.toLowerCase().split(' ')[0];
+            const fromDist = cities[fromKey] || 500;
+            const toDist = cities[toKey] || 500;
+            return Math.abs(fromDist - toDist) || 600;
+        }
+
+        // Enhanced Location Detection
+        function detectLocation() {
+            if (navigator.geolocation) {
+                // High accuracy, frequent updates
+                navigator.geolocation.watchPosition(updateLocation, handleLocationError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                });
+            } else {
+                document.getElementById('currentLocDisplay').innerHTML = "<span>❌ Geolocation not supported</span>";
+            }
+        }
+
+        function updateLocation(position) {
+            const newPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            
+            // Calculate speed if we have previous position and time
+            if (lastPosition && lastUpdateTime) {
+                const timeDiff = (Date.now() - lastUpdateTime) / 1000; // seconds
+                if (timeDiff > 0) {
+                    const distDiff = calculateDistance(lastPosition, newPosition) * 1000; // meters
+                    currentSpeed = Math.round((distDiff / timeDiff) * 3.6); // km/h
+                }
+            }
+            
+            currentPosition = newPosition;
+            lastPosition = {...currentPosition};
+            lastUpdateTime = Date.now();
+            
+            // Update display
+            document.getElementById('currentLocDisplay').innerHTML = 
+                `<span style="color:#10b981">🟢 Live</span> ${currentPosition.lat.toFixed(5)}, ${currentPosition.lng.toFixed(5)}`;
+            document.getElementById('coordsDisplay').textContent = 
+                `${currentPosition.lat.toFixed(4)}°N, ${currentPosition.lng.toFixed(4)}°E`;
+            document.getElementById('accuracyDisplay').textContent = 
+                `Accuracy: ±${position.coords.accuracy.toFixed(0)}m`;
+            
+            document.getElementById('currentLocation').textContent = 
+                `${currentPosition.lat.toFixed(2)}°N, ${currentPosition.lng.toFixed(2)}°E`;
+
+            // Update speed
+            document.getElementById('statSpeed').textContent = currentSpeed;
+
+            // Calculate distance covered
+            if (lastPosition && Object.keys(lastPosition).length > 0) {
+                const dist = calculateDistance(lastPosition, currentPosition);
+                totalDistance += dist;
+                document.getElementById('distanceCovered').textContent = totalDistance.toFixed(1);
+                
+                // Update remaining distance
+                if (tripSession && tripSession.tripData) {
+                    const destCoords = getCityCoords(tripSession.tripData.to);
+                    if (destCoords) {
+                        const remaining = calculateDistance(currentPosition, destCoords);
+                        document.getElementById('remainingDistance').textContent = remaining.toFixed(0);
+                        document.getElementById('statDistance').textContent = remaining.toFixed(0);
+                        
+                        // Estimate ETA based on average speed
+                        if (currentSpeed > 5) {
+                            const etaMinutes = Math.round((remaining / currentSpeed) * 60);
+                            document.getElementById('eta').textContent = etaMinutes + ' min';
+                            document.getElementById('statTime').textContent = etaMinutes;
+                        }
+                    }
+                }
+                
+                // Update mini map
+                if (miniMarker) {
+                    miniMarker.setLatLng([currentPosition.lat, currentPosition.lng]);
+                }
+                
+                // Update full map if open
+                if (fullMap && currentMarker) {
+                    currentMarker.setLatLng([currentPosition.lat, currentPosition.lng]);
+                    fullMap.setView([currentPosition.lat, currentPosition.lng]);
+                    
+                    // Update route in navigation mode
+                    if (isNavigating && routeData) {
+                        updateNavigationRoute();
+                    }
+                }
+            }
+        }
+
+        function handleLocationError(error) {
+            console.error('Location error:', error);
+            document.getElementById('currentLocDisplay').innerHTML = "<span>❌ Location unavailable</span>";
+        }
+
+        function calculateDistance(pos1, pos2) {
+            const R = 6371;
+            const dLat = (pos2.lat - pos1.lat) * Math.PI / 180;
+            const dLon = (pos2.lng - pos1.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(pos1.lat * Math.PI / 180) * Math.cos(pos2.lat * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Speech Recognition
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                speechRecognition = new SpeechRecognition();
+                speechRecognition.continuous = false;
+                speechRecognition.interimResults = true;
+                speechRecognition.lang = 'en-US';
+                
+                speechRecognition.onstart = function() {
+                    addMessage('🎤 Listening... Speak now!', 'ai');
+                };
+                
+                speechRecognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    if (interimTranscript) {
+                        document.getElementById('assistantInput').value = interimTranscript;
+                    }
+                    
+                    if (finalTranscript) {
+                        document.getElementById('assistantInput').value = finalTranscript;
+                        addMessage('You: ' + finalTranscript, 'user');
+                        sendAssistantMessage();
+                    }
+                };
+                
+                speechRecognition.onerror = function(event) {
+                    addMessage('Voice input error: ' + event.error, 'ai');
+                    stopListening();
+                };
+                
+                speechRecognition.onend = function() {
+                    stopListening();
+                };
+            } else {
+                addMessage('Voice input is not supported in this browser. Please use Chrome.', 'ai');
+            }
+        }
+
+        function toggleVoiceInput() {
+            if (!speechRecognition) {
+                initSpeechRecognition();
+                if (!speechRecognition) {
+                    alert('Voice input not supported in this browser!');
+                    return;
+                }
+            }
+            
+            if (isListening) {
+                try { speechRecognition.stop(); } catch(e) {}
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            isListening = true;
+            document.getElementById('voiceBtn').classList.add('listening');
+            document.getElementById('voiceBtn').textContent = '🛑';
+            try { speechRecognition.start(); } catch(e) {
+                addMessage('Could not start voice input.', 'ai');
+                stopListening();
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            document.getElementById('voiceBtn').classList.remove('listening');
+            document.getElementById('voiceBtn').textContent = '🎤';
+        }
+
+        // Text to Speech
+        function updateSpeakButtonUI() {
+            const btn = document.getElementById('speakBtn');
+            if (!btn) return;
+            btn.style.background = isSpeaking ? '#10b981' : 'var(--primary-orange)';
+        }
+
+        function toggleSpeak() {
+            isSpeaking = !isSpeaking;
+            updateSpeakButtonUI();
+            
+            if (isSpeaking) {
+                addMessage('Voice output enabled.', 'ai');
+            } else {
+                window.speechSynthesis.cancel();
+                addMessage('Voice output turned off.', 'ai');
+            }
+        }
+
+        function sanitizeTextForSpeech(text) {
+            let cleaned = String(text || "")
+                .replace(/\r/g, " ")
+                .replace(/\n+/g, ". ");
+
+            try {
+                cleaned = cleaned.replace(/\p{Extended_Pictographic}/gu, " ");
+            } catch (e) {
+                cleaned = cleaned.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, " ");
+            }
+
+            cleaned = cleaned
+                .replace(/[\uFE0F\u200D]/g, " ")
+                .replace(/[•▪▫◦●■□▶►]/g, " ")
+                .replace(/\s{2,}/g, " ")
+                .trim();
+
+            return cleaned;
+        }
+
+        function speakText(text) {
+            if (!isSpeaking) return;
+            const speakableText = sanitizeTextForSpeech(text);
+            if (!speakableText) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(speakableText);
+            utterance.lang = 'en-IN';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Full Screen Map Functions
+        async function openFullMap() {
+            const modal = document.getElementById('mapModal');
+            modal.classList.add('active');
+            
+            document.getElementById('routeInfo').textContent = 'Loading map...';
+            
+            if (!fullMap) {
+                fullMap = L.map('fullMap', {
+                    zoomControl: true,
+                    attributionControl: true
+                }).setView([20.5937, 78.9629], 5);
+
+                // CartoDB Voyager tiles (attractive)
+                tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap, © CartoDB',
+                    maxZoom: 19
+                }).addTo(fullMap);
+
+                // Satellite layer (hidden by default)
+                satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© Esri',
+                    maxZoom: 19
+                });
+            }
+            
+            // Clear existing layers
+            clearMapLayers();
+            
+            if (tripSession && tripSession.tripData) {
+                const originCoords = getCityCoords(tripSession.tripData.from);
+                const destCoords = getCityCoords(tripSession.tripData.to);
+                
+                if (originCoords && destCoords) {
+                    // Add origin marker with custom icon
+                    originMarker = L.marker([originCoords.lat, originCoords.lng], {
+                        icon: L.divIcon({
+                            className: 'origin-icon',
+                            html: '<div style="background:linear-gradient(135deg,#10b981,#059669);width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:12px;">📍</div>',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        })
+                    }).addTo(fullMap).bindPopup(`<b>📍 ${tripSession.tripData.from}</b><br>Starting Point`);
+                    
+                    // Add destination marker
+                    destinationMarker = L.marker([destCoords.lat, destCoords.lng], {
+                        icon: L.divIcon({
+                            className: 'dest-icon',
+                            html: '<div style="background:linear-gradient(135deg,#ef4444,#dc2626);width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:14px;">🎯</div>',
+                            iconSize: [34, 34],
+                            iconAnchor: [17, 17]
+                        })
+                    }).addTo(fullMap).bindPopup(`<b>🎯 ${tripSession.tripData.to}</b><br>Destination`);
+                    
+                    // Fetch and display road route
+                    try {
+                        routeData = await fetchRoadRoute(originCoords, destCoords);
+                        if (routeData) {
+                            // Draw the road route
+                            routeLine = L.polyline(routeData.coordinates, {
+                                color: '#f28c38',
+                                weight: 6,
+                                opacity: 0.9,
+                                lineCap: 'round',
+                                lineJoin: 'round'
+                            }).addTo(fullMap);
+                            
+                            const distanceKm = (routeData.distance / 1000).toFixed(0);
+                            const durationHours = (routeData.duration / 3600).toFixed(1);
+                            const durationMins = Math.round(routeData.duration / 60);
+                            
+                            document.getElementById('routeInfo').textContent = 
+                                `${tripSession.tripData.from} → ${tripSession.tripData.to}: ${distanceKm} km, ~${durationMins} min`;
+                            document.getElementById('statDistance').textContent = distanceKm;
+                            document.getElementById('statTime').textContent = durationMins;
+                            
+                            // Fit bounds to show entire route
+                            fullMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+                            
+                            // Show navigation panel
+                            document.getElementById('navPanel').classList.add('active');
+                            updateNavigationInstructions();
+                        }
+                    } catch (error) {
+                        console.error('Error fetching route:', error);
+                        drawStraightLine(originCoords, destCoords);
+                    }
+                }
+            }
+            
+            // Add current location marker
+            if (currentPosition) {
+                addCurrentLocationMarker();
+                fullMap.setView([currentPosition.lat, currentPosition.lng], 12);
+            }
+            
+            addMessage('🗺️ Full map opened with live navigation!', 'ai');
+        }
+
+        function addCurrentLocationMarker() {
+            if (currentMarker) fullMap.removeLayer(currentMarker);
+            
+            currentMarker = L.marker([currentPosition.lat, currentPosition.lng], {
+                icon: L.divIcon({
+                    className: 'current-icon',
+                    html: `<div style="background:linear-gradient(135deg,#3b82f6,#2563eb);width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:12px;">🚗</div>
+                           <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:#3b82f6;border-radius:50%;opacity:0.5;animation:ping 1.5s infinite;"></div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                })
+            }).addTo(fullMap).bindPopup(`<b>📍 You are here</b><br>${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)}<br>Speed: ${currentSpeed} km/h`);
+        }
+
+        function clearMapLayers() {
+            if (originMarker) { fullMap.removeLayer(originMarker); originMarker = null; }
+            if (destinationMarker) { fullMap.removeLayer(destinationMarker); destinationMarker = null; }
+            if (currentMarker) { fullMap.removeLayer(currentMarker); currentMarker = null; }
+            if (routeLine) { fullMap.removeLayer(routeLine); routeLine = null; }
+            if (routeControl) { fullMap.removeControl(routeControl); routeControl = null; }
+            
+            placeMarkers.forEach(m => fullMap.removeLayer(m));
+            placeMarkers = [];
+        }
+
+        // Fetch road route using OSRM API
+        async function fetchRoadRoute(origin, destination) {
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson&steps=true`;
+            
+            const response = await fetch(osrmUrl);
+            const data = await response.json();
+            
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+                return {
+                    coordinates: route.geometry.coordinates.map(coord => [coord[1], coord[0]]),
+                    distance: route.distance,
+                    duration: route.duration,
+                    legs: route.legs,
+                    steps: route.legs[0]?.steps || []
+                };
+            }
+            return null;
+        }
+
+        function updateNavigationInstructions() {
+            if (!routeData || !routeData.steps || routeData.steps.length === 0) return;
+            
+            // Find next turn
+            let nextStep = routeData.steps[0];
+            let remainingDist = routeData.distance;
+            
+            // Calculate remaining distance from current position
+            if (currentPosition && routeData.coordinates) {
+                // Find closest point on route
+                let minDist = Infinity;
+                let closestIdx = 0;
+                routeData.coordinates.forEach((coord, idx) => {
+                    const d = calculateDistance(currentPosition, { lat: coord[0], lng: coord[1] });
+                    if (d < minDist) {
+                        minDist = d;
+                        closestIdx = idx;
+                    }
+                });
+                
+                // Calculate remaining distance
+                remainingDist = 0;
+                for (let i = closestIdx; i < routeData.coordinates.length - 1; i++) {
+                    remainingDist += calculateDistance(
+                        { lat: routeData.coordinates[i][0], lng: routeData.coordinates[i][1] },
+                        { lat: routeData.coordinates[i+1][0], lng: routeData.coordinates[i+1][1] }
+                    ) * 1000;
+                }
+                
+                // Find next instruction
+                const totalStepsDist = routeData.steps.reduce((sum, s) => sum + s.distance, 0);
+                let accumDist = 0;
+                for (const step of routeData.steps) {
+                    accumDist += step.distance;
+                    if (accumDist >= (routeData.distance - remainingDist)) {
+                        nextStep = step;
+                        break;
+                    }
+                }
+            }
+            
+            // Update UI
+            const icon = getTurnIcon(nextStep.maneuver?.type, nextStep.maneuver?.modifier);
+            document.getElementById('navIcon').textContent = icon;
+            document.getElementById('navText').textContent = nextStep.name || 'Continue on road';
+            document.getElementById('navDistance').textContent = nextStep.distance > 1000 
+                ? (nextStep.distance/1000).toFixed(1) + ' km' 
+                : Math.round(nextStep.distance) + ' m';
+            
+            // Update remaining distance
+            document.getElementById('remainingDistance').textContent = (remainingDist/1000).toFixed(0);
+            document.getElementById('statDistance').textContent = (remainingDist/1000).toFixed(0);
+            
+            // Update ETA
+            const remainingTime = (remainingDist / 1000) / (currentSpeed > 10 ? currentSpeed : 60) * 60;
+            document.getElementById('eta').textContent = Math.round(remainingTime) + ' min';
+            document.getElementById('statTime').textContent = Math.round(remainingTime);
+        }
+
+        function getTurnIcon(type, modifier) {
+            const icons = {
+                'depart': '🚗',
+                'arrive': '🎯',
+                'turn left': '⬅️',
+                'turn right': '➡️',
+                'slight left': '↙️',
+                'slight right': '↗️',
+                'sharp left': '⤵️',
+                'sharp right': '⤴️',
+                'uturn': '🔄',
+                'merge': '↗️',
+                'fork left': '↙️',
+                'fork right': '↗️',
+                'end of road left': '⬅️',
+                'end of road right': '➡️',
+                'continue': '⬆️',
+                'new name': '➡️'
+            };
+            
+            const key = modifier ? `${modifier} ${type}` : type;
+            return icons[key] || '➡️';
+        }
+
+        function updateNavigationRoute() {
+            if (!currentPosition || !routeData) return;
+            
+            // Update current marker
+            if (currentMarker) {
+                currentMarker.setLatLng([currentPosition.lat, currentPosition.lng]);
+                currentMarker.setPopupContent(`<b>📍 You are here</b><br>${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)}<br>Speed: ${currentSpeed} km/h`);
+            }
+            
+            // Update navigation instructions
+            updateNavigationInstructions();
+        }
+
+        function drawStraightLine(originCoords, destCoords) {
+            const routeCoords = [
+                [originCoords.lat, originCoords.lng],
+                [destCoords.lat, destCoords.lng]
+            ];
+            
+            routeLine = L.polyline(routeCoords, {
+                color: '#f28c38',
+                weight: 4,
+                opacity: 0.8,
+                dashArray: '10, 10'
+            }).addTo(fullMap);
+            
+            fullMap.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+            document.getElementById('routeInfo').textContent = `${tripSession.tripData.from} → ${tripSession.tripData.to} (straight line)`;
+        }
+
+        function startNavigation() {
+            isNavigating = true;
+            openFullMap();
+            addMessage('🧭 Navigation started! Follow the route on the map.', 'ai');
+        }
+
+        function recenterMap() {
+            if (fullMap && currentPosition) {
+                fullMap.setView([currentPosition.lat, currentPosition.lng], 14);
+            }
+        }
+
+        function toggleSatellite() {
+            if (fullMap) {
+                if (fullMap.hasLayer(satelliteLayer)) {
+                    fullMap.removeLayer(satelliteLayer);
+                    tileLayer.addTo(fullMap);
+                } else {
+                    tileLayer.removeFrom(fullMap);
+                    satelliteLayer.addTo(fullMap);
+                }
+            }
+        }
+
+        function closeFullMap() {
+            document.getElementById('mapModal').classList.remove('active');
+            isNavigating = false;
+        }
+
+        function openFinalPlanModal() {
+            const session = getTripSession();
+            const fallbackPlan = localStorage.getItem('finalTripPlan');
+            const planHTML = (session && session.finalPlanHtml) || fallbackPlan || '';
+            const content = document.getElementById('finalPlanContent');
+
+            if (planHTML) {
+                content.innerHTML = planHTML;
+            } else {
+                content.innerHTML = '<p style="color:#777;">No final plan found. Please generate and view final plan in Plan Trip first.</p>';
+            }
+            document.getElementById('finalPlanModal').style.display = 'block';
+        }
+
+        function closeFinalPlanModal() {
+            document.getElementById('finalPlanModal').style.display = 'none';
+        }
+
+        // Close map with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeFullMap();
+            }
+        });
+
+        // Quick Actions
+        async function handleQuickAction(action) {
+            let query = '';
+            let useContext = true;
+            
+            switch(action) {
+                case 'map':
+                    openFullMap();
+                    return;
+                case 'weather':
+                    query = 'What is the current weather?';
+                    useContext = false;
+                    break;
+                case 'finalPlan':
+                    openFinalPlanModal();
+                    return;
+                case 'food':
+                    query = 'Suggest best local food';
+                    break;
+                case 'hotels':
+                    query = 'List nearby hotels and their prices.';
+                    break;
+                case 'places':
+                    query = 'What are the must-visit places near here?';
+                    break;
+                case 'emergency':
+                    query = 'Give me emergency contacts and nearest hospital information.';
+                    break;
+                case 'distance':
+                    const distMsg = `📊 Trip Status:
+• Distance covered: ${totalDistance.toFixed(1)} km
+• Remaining: ${document.getElementById('remainingDistance').textContent} km
+• Current speed: ${currentSpeed} km/h
+${tripSession ? `• Route: ${tripSession.tripData.from} to ${tripSession.tripData.to}` : ''}`;
+                    addMessage(distMsg, 'ai');
+                    speakText(distMsg);
+                    return;
+            }
+            
+            if (query) {
+                document.getElementById('assistantInput').value = query;
+                sendAssistantMessage({ useContext });
+            }
+        }
+
+        // Chat Functions
+        function addMessage(text, type) {
+            const chatArea = document.getElementById('assistantChatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}-message`;
+            msgDiv.innerText = text;
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function addImageGallery(images) {
+            if (!Array.isArray(images) || !images.length) return;
+            const chatArea = document.getElementById('assistantChatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ai-message image-gallery-message';
+            const cards = images.map((img) => {
+                const altRaw = img.alt || 'Image';
+                const alt = altRaw.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const photographerRaw = img.photographer || '';
+                const photographer = photographerRaw.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeUrl = String(img.url || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const thumb = img.thumb || img.url;
+                return `
+                    <div class="image-card" onclick="openImagePreview('${safeUrl}', '${alt}', '${photographer}')">
+                        <img src="${thumb}" alt="${alt}" loading="lazy">
+                        <div class="image-card-caption">${alt}</div>
+                    </div>
+                `;
+            }).join('');
+            msgDiv.innerHTML = `<div class="image-gallery-title">Related images</div><div class="image-grid">${cards}</div>`;
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function openImagePreview(url, alt, photographer) {
+            const modal = document.getElementById('imagePreviewModal');
+            const img = document.getElementById('imagePreviewEl');
+            const meta = document.getElementById('imagePreviewMeta');
+            img.src = url || '';
+            img.alt = alt || 'Preview';
+            meta.textContent = photographer ? `${alt} | Photo: ${photographer}` : (alt || '');
+            modal.classList.add('active');
+        }
+
+        function closeImagePreview() {
+            const modal = document.getElementById('imagePreviewModal');
+            const img = document.getElementById('imagePreviewEl');
+            modal.classList.remove('active');
+            img.src = '';
+        }
+
+        async function sendAssistantMessage(options = {}) {
+            const useContext = options.useContext !== false;
+            const input = document.getElementById('assistantInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage('You: ' + message, 'user');
+            input.value = '';
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai-message';
+            loadingDiv.innerText = '🤔 Thinking...';
+            document.getElementById('assistantChatArea').appendChild(loadingDiv);
+
+            try {
+                let context = '';
+                if (useContext) {
+                    if (tripSession) {
+                        context += `Trip: ${tripSession.tripData.from} to ${tripSession.tripData.to}\n`;
+                    }
+                    if (currentPosition) {
+                        context += `User's current location: ${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)}\n`;
+                        context += `Speed: ${currentSpeed} km/h\n`;
+                        context += `Distance covered: ${totalDistance.toFixed(1)} km\n`;
+                    }
+                    context += '\n';
+                }
+
+                const response = await fetch(`${API_BASE}/api/assistant/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: context + message })
+                });
+
+                const data = await response.json();
+                loadingDiv.remove();
+                
+                const replyRaw = data.reply || 'I apologize, but I could not process your request.';
+                const reply = replyRaw.replace(/\*/g, '');
+                addMessage(reply, 'ai');
+                addImageGallery(data.images || []);
+                speakText(reply);
+                
+                if (message.toLowerCase().includes('map') || message.toLowerCase().includes('navigation')) {
+                    openFullMap();
+                }
+
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('😟 Sorry, I\'m having trouble connecting. Please check if the backend is running.', 'ai');
+            }
+        }
+
+        document.getElementById('assistantInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendAssistantMessage();
+            }
+        });
+        // ============ BOOKING FUNCTIONS ============
+        const bookingTypes = {
+            hotel: { title: 'Hotel Stay', icon: 'H', color: '#fff5eb' },
+            restaurant: { title: 'Restaurant', icon: 'R', color: '#eef9ef' },
+            train: { title: 'Train Tickets', icon: 'T', color: '#ecf4ff' },
+            flight: { title: 'Flight Tickets', icon: 'F', color: '#f7efff' }
+        };
+
+        const bookingSteps = ['Type', 'Search', 'Select', 'Traveler', 'Confirm'];
+        const bookingState = {
+            step: 1,
+            bookingType: null,
+            search: {},
+            offers: [],
+            selectedOffer: null,
+            bookingResult: null,
+            autofill: {
+                tripData: {},
+                liveLocation: {},
+                form: {},
+                customer: {}
+            }
+        };
+
+        function todayIso() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function buildAutofillTripDataForAssistant(tripData) {
+            const nights = Number(tripData.nights) || 1;
+            const startDate = tripData.date || '';
+            const returnDate = tripData.return_date || (
+                startDate
+                    ? new Date(new Date(startDate).getTime() + nights * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                    : ''
+            );
+            const travelers = Number(tripData.people) || 1;
+
+            return {
+                from: tripData.from || '',
+                to: tripData.to || '',
+                destination: tripData.to || '',
+                location: tripData.to || '',
+                travel_date: startDate,
+                date: startDate,
+                start_date: startDate,
+                return_date: returnDate,
+                travelers,
+                passengers: travelers,
+                people: travelers,
+                nights,
+                special_requests: `Budget INR ${tripData.budget || ''}, travel mode ${tripData.travelMode || ''}`.trim()
+            };
+        }
+
+        function inferAssistantBookingType(tripData) {
+            const mode = String((tripData && tripData.travelMode) || '').toLowerCase();
+            if (mode.includes('aero') || mode.includes('flight')) return 'flight';
+            if (mode.includes('train')) return 'train';
+            return 'hotel';
+        }
+
+        function mapAutofillToAssistantSearch(type, autofillForm, tripData, liveLocation) {
+            const fallbackDate = tripData.date || todayIso();
+            const travelers = Number(autofillForm.travelers) || Number(tripData.people) || 1;
+            const toCity = autofillForm.trip_location || tripData.to || '';
+            const fromCity = tripData.from || autofillForm.pickup_location || '';
+            const location = liveLocation.city || toCity || 'Mumbai';
+            const travelDate = autofillForm.travel_date || fallbackDate;
+            const returnDate = autofillForm.return_date || '';
+            const nights = Math.max(1, Number(tripData.nights) || 1);
+
+            if (type === 'hotel') {
+                return { location, date: travelDate, nights };
+            }
+            if (type === 'restaurant') {
+                return { location, date: travelDate, people: travelers };
+            }
+            if (type === 'train') {
+                return {
+                    from: fromCity || 'Mumbai',
+                    to: toCity || 'New Delhi',
+                    travel_date: travelDate,
+                    passengers: travelers
+                };
+            }
+            return {
+                from: fromCity || 'Delhi',
+                to: toCity || 'Mumbai',
+                departure_date: returnDate || travelDate,
+                travelers
+            };
+        }
+
+        function buildAssistantCustomerData(autofillForm, user) {
+            return {
+                name: autofillForm.full_name || user?.name || user?.username || 'Traveler',
+                email: autofillForm.email || user?.email || 'demo@ghoomnechalo.com',
+                phone: autofillForm.phone || user?.phone || ''
+            };
+        }
+
+        async function prepareBookingAutofill() {
+            const tripData = (tripSession && tripSession.tripData) ? tripSession.tripData : {};
+            const liveLocation = currentPosition
+                ? { lat: currentPosition.lat, lon: currentPosition.lng, city: '' }
+                : {};
+            let autofillForm = {};
+            let customer = buildAssistantCustomerData({}, currentUser || {});
+            const hasTripData = Object.keys(tripData).length > 0;
+
+            if (hasTripData) {
+                try {
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (authToken) {
+                        headers['Authorization'] = 'Bearer ' + authToken;
+                    }
+
+                    const response = await fetch(`${API_BASE}/api/booking-agent/autofill`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            trip_data: buildAutofillTripDataForAssistant(tripData),
+                            profile: currentUser || {},
+                            live_location: liveLocation
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        autofillForm = data.form || {};
+                        const liveInfo = data.live_location || {};
+                        if (liveInfo.city) {
+                            liveLocation.city = liveInfo.city;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Assistant booking autofill failed:', error);
+                }
+            }
+
+            customer = buildAssistantCustomerData(autofillForm, currentUser || {});
+
+            bookingState.autofill = {
+                tripData,
+                liveLocation,
+                form: autofillForm,
+                customer
+            };
+        }
+
+        function renderStepPills() {
+            const pills = document.getElementById('bookingStepPills');
+            pills.innerHTML = bookingSteps.map((label, i) => {
+                const active = i + 1 === bookingState.step;
+                const done = i + 1 < bookingState.step;
+                const bg = active ? '#f28c38' : (done ? '#2d1b13' : '#f2f2f2');
+                const color = active || done ? '#fff' : '#666';
+                return `<span style="padding:6px 10px;border-radius:999px;font-size:0.8rem;background:${bg};color:${color};">${i + 1}. ${label}</span>`;
+            }).join('');
+        }
+
+        async function openBookingSection() {
+            bookingState.step = 1;
+            bookingState.bookingType = null;
+            bookingState.search = {};
+            bookingState.offers = [];
+            bookingState.selectedOffer = null;
+            bookingState.bookingResult = null;
+            bookingState.autofill = { tripData: {}, liveLocation: {}, form: {}, customer: {} };
+            document.getElementById('bookingModal').style.display = 'block';
+            await prepareBookingAutofill();
+            bookingState.bookingType = inferAssistantBookingType(bookingState.autofill.tripData || {});
+            renderBookingSearchStep();
+            addMessage(`Demo booking opened with auto-filled ${bookingTypes[bookingState.bookingType].title} details. You can edit any field.`, 'ai');
+        }
+
+        function closeBookingSection() {
+            document.getElementById('bookingModal').style.display = 'none';
+        }
+
+        function renderBookingTypeStep() {
+            bookingState.step = 1;
+            renderStepPills();
+            const root = document.getElementById('bookingFlowRoot');
+            root.innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;">
+                    ${Object.entries(bookingTypes).map(([type, meta]) => `
+                        <button onclick="selectBookingType('${type}')" style="border:1px solid #ececec;background:${meta.color};padding:18px;border-radius:12px;cursor:pointer;text-align:left;">
+                            <div style="font-size:1.2rem;font-weight:700;color:#2d1b13;">${meta.icon}</div>
+                            <div style="font-size:1rem;font-weight:600;color:#2d1b13;margin-top:6px;">${meta.title}</div>
+                            <div style="font-size:0.8rem;color:#666;margin-top:4px;">Uses real provider names in demo mode</div>
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function selectBookingType(type) {
+            bookingState.bookingType = type;
+            renderBookingSearchStep();
+        }
+
+        function renderBookingSearchStep() {
+            bookingState.step = 2;
+            renderStepPills();
+            const type = bookingState.bookingType;
+            const root = document.getElementById('bookingFlowRoot');
+            const today = todayIso();
+            const tripData = bookingState.autofill.tripData || {};
+            const autofillForm = bookingState.autofill.form || {};
+            const liveLocation = bookingState.autofill.liveLocation || {};
+            const prefill = mapAutofillToAssistantSearch(type, autofillForm, tripData, liveLocation);
+            let fields = '';
+
+            if (type === 'hotel') {
+                fields = `
+                    <label>City</label><input name="location" required value="${prefill.location || 'Mumbai'}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Check-in Date</label><input type="date" name="date" value="${prefill.date || today}" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Nights</label><input type="number" name="nights" min="1" value="${prefill.nights || 1}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                `;
+            } else if (type === 'restaurant') {
+                fields = `
+                    <label>City</label><input name="location" required value="${prefill.location || 'New Delhi'}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Date</label><input type="date" name="date" value="${prefill.date || today}" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>People</label><input type="number" name="people" min="1" value="${prefill.people || 2}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                `;
+            } else if (type === 'train') {
+                fields = `
+                    <label>From</label><input name="from" required value="${prefill.from || 'Mumbai'}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>To</label><input name="to" required value="${prefill.to || 'New Delhi'}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Travel Date</label><input type="date" name="travel_date" value="${prefill.travel_date || today}" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Passengers</label><input type="number" name="passengers" min="1" value="${prefill.passengers || 1}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                `;
+            } else {
+                fields = `
+                    <label>From</label><input name="from" required value="${prefill.from || 'Delhi'}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>To</label><input name="to" required value="${prefill.to || 'Mumbai'}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Departure Date</label><input type="date" name="departure_date" value="${prefill.departure_date || today}" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Travelers</label><input type="number" name="travelers" min="1" value="${prefill.travelers || 1}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                `;
+            }
+
+            root.innerHTML = `
+                <form id="demoSearchForm" style="display:grid;gap:10px;">
+                    ${fields}
+                    <div style="display:flex;gap:10px;margin-top:6px;">
+                        <button type="button" onclick="renderBookingTypeStep()" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;">Back</button>
+                        <button type="submit" style="padding:10px 14px;border-radius:8px;border:none;background:#f28c38;color:#fff;cursor:pointer;">Search Demo Options</button>
+                    </div>
+                </form>
+                <div id="bookingSearchStatus" style="margin-top:10px;color:#666;font-size:0.88rem;"></div>
+            `;
+
+            document.getElementById('demoSearchForm').addEventListener('submit', searchDemoOffers);
+        }
+
+        async function searchDemoOffers(event) {
+            event.preventDefault();
+            const status = document.getElementById('bookingSearchStatus');
+            status.textContent = 'Fetching demo options...';
+            const formData = new FormData(event.target);
+            bookingState.search = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(`${API_BASE}/api/assistant/demo-bookings/options`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ booking_type: bookingState.bookingType, search: bookingState.search })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Failed to load options');
+                bookingState.offers = data.offers || [];
+                renderBookingOptionsStep(data.note || '');
+            } catch (error) {
+                status.textContent = error.message;
+            }
+        }
+
+        function renderBookingOptionsStep(note) {
+            bookingState.step = 3;
+            renderStepPills();
+            const root = document.getElementById('bookingFlowRoot');
+            const isHotel = bookingState.bookingType === 'hotel';
+            const cards = bookingState.offers.map((offer, idx) => {
+                if (isHotel) {
+                    const rating = Number(offer.rating || 0);
+                    const starCount = Math.max(1, Math.min(5, Math.round(rating)));
+                    const stars = '★'.repeat(starCount) + '☆'.repeat(5 - starCount);
+                    const reviewCount = 120 + (idx * 37);
+                    const priceText = `INR ${offer.price} / ${offer.unit}`;
+                    return `
+                        <div style="display:grid;grid-template-columns:170px 1fr auto;gap:14px;border:1px solid #e7e7e7;border-radius:14px;padding:12px;background:#fff;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+                            <div style="height:120px;border-radius:12px;background:linear-gradient(135deg,#fef3e6,#ffe3c6);border:1px solid #f2d9bf;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#7a4b20;">
+                                <div style="font-size:1.8rem;line-height:1;">🏨</div>
+                                <div style="font-size:0.72rem;margin-top:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Hotel Stay</div>
+                            </div>
+                            <div>
+                                <div style="font-size:1.02rem;font-weight:700;color:#2d1b13;">${offer.title}</div>
+                                <div style="font-size:0.86rem;color:#666;margin:4px 0 8px 0;">${offer.location}</div>
+                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                                    <span style="background:#f0f7ff;color:#1e40af;padding:2px 8px;border-radius:999px;font-size:0.76rem;font-weight:600;">${rating.toFixed(1)} • ${stars}</span>
+                                    <span style="font-size:0.78rem;color:#666;">${reviewCount} reviews</span>
+                                </div>
+                                <div style="font-size:0.84rem;color:#555;line-height:1.45;">${offer.details}</div>
+                            </div>
+                            <div style="text-align:right;min-width:132px;">
+                                <div style="font-size:1rem;font-weight:700;color:#2d1b13;">${priceText}</div>
+                                <div style="font-size:0.74rem;color:#777;margin-top:2px;">Taxes extra</div>
+                                <button onclick="chooseDemoOffer('${offer.id}')" style="margin-top:10px;padding:9px 12px;border:none;background:#2d1b13;color:#fff;border-radius:8px;cursor:pointer;width:100%;">View Deal</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div style="border:1px solid #ececec;border-radius:12px;padding:14px;background:#fff;">
+                        <div style="font-weight:700;color:#2d1b13;">${offer.title}</div>
+                        <div style="font-size:0.87rem;color:#666;margin:4px 0;">${offer.location}</div>
+                        <div style="font-size:0.87rem;color:#666;">${offer.details}</div>
+                        <div style="font-size:0.95rem;color:#2d1b13;margin-top:8px;">INR ${offer.price} / ${offer.unit} | Rating ${offer.rating}</div>
+                        <button onclick="chooseDemoOffer('${offer.id}')" style="margin-top:10px;padding:9px 12px;border:none;background:#2d1b13;color:#fff;border-radius:8px;cursor:pointer;">Select</button>
+                    </div>
+                `;
+            }).join('');
+
+            const optionsLayout = isHotel
+                ? `<div style="display:grid;gap:12px;">${cards || '<div>No hotel options available.</div>'}</div>`
+                : `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">${cards || '<div>No options available.</div>'}</div>`;
+
+            root.innerHTML = `
+                <div style="font-size:0.85rem;color:#666;margin-bottom:10px;">${note}</div>
+                ${optionsLayout}
+                <div style="margin-top:12px;">
+                    <button onclick="renderBookingSearchStep()" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;">Back to Search</button>
+                </div>
+            `;
+        }
+
+        function chooseDemoOffer(offerId) {
+            bookingState.selectedOffer = bookingState.offers.find((offer) => offer.id === offerId) || null;
+            if (!bookingState.selectedOffer) return;
+            renderTravelerStep();
+        }
+
+        function renderTravelerStep() {
+            bookingState.step = 4;
+            renderStepPills();
+            const root = document.getElementById('bookingFlowRoot');
+            const customer = bookingState.autofill.customer || {};
+            root.innerHTML = `
+                <div style="border:1px solid #ececec;border-radius:10px;padding:12px;margin-bottom:14px;background:#fff;">
+                    <div style="font-weight:700;color:#2d1b13;">Selected: ${bookingState.selectedOffer.title}</div>
+                    <div style="font-size:0.88rem;color:#666;">${bookingState.selectedOffer.location}</div>
+                    <div style="font-size:0.9rem;color:#2d1b13;margin-top:6px;">INR ${bookingState.selectedOffer.price} / ${bookingState.selectedOffer.unit}</div>
+                </div>
+                <form id="travelerForm" style="display:grid;gap:10px;">
+                    <label>Full Name</label><input name="name" required value="${customer.name || ''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Email</label><input type="email" name="email" required value="${customer.email || ''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <label>Phone</label><input name="phone" value="${customer.phone || ''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;">
+                    <div style="display:flex;gap:10px;">
+                        <button type="button" onclick="renderBookingOptionsStep('')" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;">Back</button>
+                        <button type="submit" style="padding:10px 14px;border-radius:8px;border:none;background:#f28c38;color:#fff;cursor:pointer;">Confirm Demo Booking</button>
+                    </div>
+                </form>
+                <div id="bookingConfirmStatus" style="margin-top:10px;color:#666;font-size:0.88rem;"></div>
+            `;
+            document.getElementById('travelerForm').addEventListener('submit', confirmDemoBooking);
+        }
+
+        async function confirmDemoBooking(event) {
+            event.preventDefault();
+            const status = document.getElementById('bookingConfirmStatus');
+            status.textContent = 'Creating demo booking and sending PDF email...';
+            const customer = Object.fromEntries(new FormData(event.target).entries());
+
+            try {
+                const response = await fetch(`${API_BASE}/api/assistant/demo-bookings/confirm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        booking_type: bookingState.bookingType,
+                        search: bookingState.search,
+                        selected_offer_id: bookingState.selectedOffer.id,
+                        customer
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Booking failed');
+                bookingState.bookingResult = data.booking;
+                renderBookingConfirmationStep();
+            } catch (error) {
+                status.textContent = error.message;
+            }
+        }
+
+        function getBookingDocumentLabel(bookingType) {
+            if (bookingType === 'train' || bookingType === 'flight') {
+                return 'Download Ticket';
+            }
+            return 'Download Bill';
+        }
+
+        async function downloadBookingDocument() {
+            const b = bookingState.bookingResult;
+            if (!b || !b.pdf_download_url) {
+                alert('Booking document is not available yet.');
+                return;
+            }
+
+            const suffix = (b.booking_type === 'train' || b.booking_type === 'flight') ? 'ticket' : 'bill';
+            const filename = `${b.booking_ref}-${suffix}.pdf`;
+
+            try {
+                const response = await fetch(`${API_BASE}${b.pdf_download_url}`);
+                if (!response.ok) throw new Error('Download failed');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Could not download document. Please try again.');
+            }
+        }
+
+        function renderBookingConfirmationStep() {
+            bookingState.step = 5;
+            renderStepPills();
+            const root = document.getElementById('bookingFlowRoot');
+            const b = bookingState.bookingResult;
+            const emailLine = b.email_status === 'sent'
+                ? 'PDF emailed successfully.'
+                : `Email status: ${b.email_status}. ${b.email_message || ''}`;
+            const downloadLabel = getBookingDocumentLabel(b.booking_type);
+
+            root.innerHTML = `
+                <div style="border:1px solid #cce8d0;background:#f2fff5;border-radius:12px;padding:16px;">
+                    <div style="font-size:1rem;font-weight:700;color:#135928;">Demo booking created</div>
+                    <div style="margin-top:8px;font-size:0.9rem;color:#244;">Booking Ref: <strong>${b.booking_ref}</strong></div>
+                    <div style="font-size:0.9rem;color:#244;">Status: <strong>${b.status}</strong></div>
+                    <div style="font-size:0.9rem;color:#244;">Provider: <strong>${b.offer.title}</strong></div>
+                    <div style="font-size:0.9rem;color:#244;">Amount: <strong>INR ${b.amount}</strong></div>
+                    <div style="font-size:0.9rem;color:#244;">${emailLine}</div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+                        <button onclick="downloadBookingDocument()" style="padding:10px 14px;border-radius:8px;border:none;background:#2d1b13;color:#fff;cursor:pointer;">${downloadLabel}</button>
+                        <button onclick="openBookingSection()" style="padding:10px 14px;border-radius:8px;border:none;background:#f28c38;color:#fff;cursor:pointer;">New Demo Booking</button>
+                    </div>
+                    <div style="margin-top:10px;font-size:0.8rem;color:#4b5a52;">Downloaded file will be saved to your device downloads folder.</div>
+                </div>
+            `;
+
+            const bookingMsg = `Demo booking ${b.booking_ref} created for ${b.offer.title}. ${emailLine}`;
+            addMessage(bookingMsg, 'ai');
+            speakText('Demo booking completed. Check confirmation details on screen.');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeBookingSection();
+                closeFinalPlanModal();
+                closeImagePreview();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
