@@ -1,0 +1,2343 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Assistant - Ghoomne Chalo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-orange: #f28c38;
+            --dark-brown: #2d1b13;
+            --bg-light: #faf7f2;
+            --white: #ffffff;
+            --border-color: #eee;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            color: var(--dark-brown);
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 10px 5%;
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+        nav span:first-child {
+            font-weight: 700;
+            color: var(--primary-orange);
+            font-size: 1.3rem;
+            text-transform: capitalize;
+        }
+        nav a {
+            text-decoration: none;
+            color: #555;
+            font-size: 0.9rem;
+            margin: 0 15px;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .nav-user {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 5px 10px;
+        }
+        .nav-user ul {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            min-width: 140px;
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+            z-index: 1100;
+        }
+        .nav-user:hover ul { display: block; }
+        .nav-user ul li a {
+            display: block;
+            margin: 0;
+            padding: 8px 14px;
+            color: var(--dark-brown);
+            font-size: 0.85rem;
+        }
+        .nav-user ul li a:hover {
+            background: #fdf2e9;
+            color: var(--primary-orange);
+        }
+        .trip-status-bar {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 12px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .trip-status-bar .location-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #10b981;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .live-indicator::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .chat-area {
+            flex: 0 0 65%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            gap: 12px;
+            background: linear-gradient(180deg, #faf7f2 0%, #f5f0e8 100%);
+        }
+        .chat-header h2 { margin: 0; font-size: 1.6rem; color: var(--dark-brown); }
+        .chat-header p { color: #888; font-size: 0.9rem; margin: 5px 0 8px 0; }
+        .message {
+            background: var(--white);
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            max-width: 85%;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message.ai-message { border-left: 4px solid var(--primary-orange); background: linear-gradient(135deg, #fffbf5 0%, #fff 100%); }
+        .message.user-message { margin-left: auto; background: linear-gradient(135deg, #e8f4fc 0%, #d4ecf9 100%); border-left: none; border-right: 4px solid #3498db; }
+        .sidebar {
+            flex: 0 0 35%;
+            background:
+                radial-gradient(circle at top right, rgba(242, 140, 56, 0.12), transparent 35%),
+                linear-gradient(180deg, #fffefd 0%, #fffaf5 100%);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+        .sidebar h3 { font-size: 0.8rem; text-transform: uppercase; color: #aaa; margin-bottom: 6px; padding-left: 8px; letter-spacing: 1px; }
+        .map-shell {
+            position: relative;
+            padding: 14px;
+            border-radius: 22px;
+            background: linear-gradient(160deg, #1e1b4b 0%, #0f172a 48%, #172554 100%);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+            overflow: hidden;
+        }
+        .map-shell.expanded {
+            position: fixed;
+            top: 88px;
+            left: 4%;
+            right: 4%;
+            bottom: 20px;
+            z-index: 2200;
+            padding: 18px;
+            border-radius: 26px;
+            box-shadow: 0 28px 70px rgba(15, 23, 42, 0.38);
+        }
+        .map-shell.expanded .mini-map-container {
+            height: calc(100vh - 290px);
+            min-height: 360px;
+        }
+        .map-shell::before {
+            content: '';
+            position: absolute;
+            inset: auto -40px -60px auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(242, 140, 56, 0.45), rgba(242, 140, 56, 0));
+            pointer-events: none;
+        }
+        .map-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+        .map-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .map-eyebrow {
+            margin: 0 0 4px 0;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.65);
+        }
+        .map-title {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #fff;
+            text-transform: none;
+            letter-spacing: 0;
+            padding-left: 0;
+        }
+        .map-subtitle {
+            margin: 4px 0 0 0;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.72);
+        }
+        .map-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .map-status-pill::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34d399;
+            box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.14);
+        }
+        .map-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 0.74rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.25s ease, transform 0.25s ease;
+        }
+        .map-action-btn:hover {
+            background: rgba(255,255,255,0.16);
+            transform: translateY(-1px);
+        }
+        .route-chip-grid {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .route-chip {
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            backdrop-filter: blur(10px);
+        }
+        .route-chip-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.6);
+        }
+        .route-chip-value {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .mini-map-container {
+            position: relative;
+            width: 100%;
+            height: 260px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        .map-fallback {
+            position: absolute;
+            inset: 0;
+            z-index: 650;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(15,23,42,0.82), rgba(15,23,42,0.7));
+            color: #fff;
+        }
+        .map-fallback.active {
+            display: flex;
+        }
+        .map-fallback-copy {
+            max-width: 260px;
+        }
+        .map-fallback-copy strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.98rem;
+        }
+        .map-fallback-copy span {
+            display: block;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: rgba(255,255,255,0.78);
+        }
+        .sidebar button {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            background: #fafafa;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: #444;
+            transition: all 0.3s;
+            gap: 12px;
+        }
+        .sidebar button:hover {
+            background: linear-gradient(135deg, #fff5eb 0%, #ffe8d6 100%);
+            color: var(--primary-orange);
+            border-color: var(--primary-orange);
+            transform: translateX(5px);
+        }
+        .sidebar button span { font-size: 1.2rem; }
+        .map-overlay {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .route-progress-card,
+        .route-legend {
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.72);
+            color: #fff;
+            backdrop-filter: blur(12px);
+        }
+        .route-progress-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+        }
+        .route-progress-track {
+            width: 100%;
+            height: 9px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.14);
+        }
+        .route-progress-fill {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #f59e0b 0%, #f97316 100%);
+            transition: width 0.35s ease;
+        }
+        .route-progress-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.76);
+        }
+        .route-legend {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 0.72rem;
+        }
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            flex: 0 0 auto;
+        }
+        .legend-route { background: #f97316; }
+        .legend-live { background: #22c55e; }
+        .legend-destination { background: #60a5fa; }
+        .location-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            color: white;
+        }
+        .location-panel h4 { margin: 0 0 12px 0; font-size: 0.9rem; color: var(--primary-orange); display: flex; align-items: center; gap: 8px; }
+        .location-panel .live-badge { background: #10b981; padding: 2px 8px; border-radius: 8px; font-size: 0.65rem; text-transform: uppercase; }
+        .location-panel .current-loc { font-size: 1rem; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .location-panel .coords { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+        .location-panel .accuracy { font-size: 0.75rem; color: #10b981; margin-top: 5px; }
+        #miniMap { width: 100%; height: 100%; }
+        .route-stops {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .route-stop {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .route-stop-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex: 0 0 auto;
+        }
+        .route-stop-label {
+            display: block;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.54);
+        }
+        .route-stop-value {
+            display: block;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 14px;
+        }
+        .leaflet-popup-content {
+            margin: 12px 14px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .map-popup-title {
+            font-weight: 700;
+            color: var(--dark-brown);
+            margin-bottom: 2px;
+        }
+        .map-popup-copy {
+            font-size: 0.82rem;
+            color: #666;
+        }
+        .saved-plan-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 24000;
+            background: rgba(15, 23, 42, 0.68);
+            padding: 24px;
+            overflow-y: auto;
+            backdrop-filter: blur(8px);
+        }
+        .saved-plan-modal.active {
+            display: block;
+        }
+        .saved-plan-card {
+            max-width: 980px;
+            margin: 20px auto;
+            background: linear-gradient(180deg, #fffdf9 0%, #fff8ef 100%);
+            border-radius: 22px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+            overflow: hidden;
+            border: 1px solid #f0dec8;
+        }
+        .saved-plan-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 24px 26px 18px 26px;
+            background: linear-gradient(135deg, #fff6ea 0%, #fff 100%);
+            border-bottom: 1px solid #f0dec8;
+        }
+        .saved-plan-head h2 {
+            margin: 0 0 6px 0;
+            text-align: left;
+            font-size: 1.45rem;
+        }
+        .saved-plan-head p {
+            margin: 0;
+            color: #7b6b60;
+            font-size: 0.9rem;
+        }
+        .saved-plan-close {
+            border: none;
+            background: #ef4444;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            flex: 0 0 auto;
+        }
+        .saved-plan-body {
+            padding: 24px 26px 28px 26px;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        .saved-plan-empty {
+            padding: 24px;
+            border: 1px dashed #f0c9a0;
+            border-radius: 18px;
+            background: #fff;
+            color: #5f5146;
+            text-align: center;
+        }
+        .voice-btn {
+            background: var(--primary-orange);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(242, 140, 56, 0.4);
+        }
+        .voice-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(242, 140, 56, 0.5); }
+        .voice-btn.listening { background: #ef4444; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        .input-bar {
+            padding: 16px 5%;
+            background: var(--white);
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid var(--border-color);
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        }
+        .input-wrapper { flex: 1; }
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 24px;
+            border: 2px solid #eee;
+            outline: none;
+            font-size: 0.94rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        .input-wrapper input:focus { border-color: var(--primary-orange); }
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary-orange), #ff6b35);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(242, 140, 56, 0.4);
+            transition: all 0.3s;
+        }
+        .send-btn:hover { transform: scale(1.1); }
+        
+        /* Booking Modal Styles */
+        #bookingModal, #bookingFormModal, #bookingReceiptModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 23000;
+            background: rgba(17, 24, 39, 0.58);
+            padding: 24px;
+            overflow-y: auto;
+            backdrop-filter: blur(6px);
+        }
+        #bookingModal.active, #bookingFormModal.active, #bookingReceiptModal.active { display: block; }
+        
+        @media (max-width: 900px) {
+            body { height: auto; overflow: auto; }
+            nav { justify-content: center; padding: 12px 20px; }
+            .nav-links { width: 100%; gap: 6px 0; }
+            .main-container { flex-direction: column; }
+            .chat-area, .sidebar { flex: none; width: auto; }
+            .trip-status-bar { flex-direction: column; gap: 10px; }
+            .route-chip-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .trip-status-bar, .input-bar { padding-left: 20px; padding-right: 20px; }
+            .trip-status-bar .location-info { flex-direction: column; gap: 8px; align-items: flex-start; }
+            .chat-area, .sidebar { padding: 16px; }
+            .input-bar { flex-wrap: wrap; }
+            .input-wrapper { width: 100%; order: 1; }
+            .voice-btn, .send-btn { order: 2; }
+            #bookingModal, #bookingFormModal, #bookingReceiptModal { padding: 14px; }
+            .route-chip-grid { grid-template-columns: 1fr; }
+            .mini-map-container { height: 220px; }
+            .map-header { flex-direction: column; }
+            .map-shell.expanded {
+                top: 70px;
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+            }
+            .map-shell.expanded .mini-map-container {
+                height: calc(100vh - 320px);
+                min-height: 280px;
+            }
+            .saved-plan-modal {
+                padding: 12px;
+            }
+            .saved-plan-head,
+            .saved-plan-body {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <span>ghoomne chalo</span>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+        </div>
+        <div class="nav-user">
+            <span>👤</span>
+            <ul>
+                <li><a href="#">Login</a></li>
+                <li><a href="#">Profile</a></li>
+                <li><a href="#">Help</a></li>
+                <li><a href="#">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="trip-status-bar" id="tripStatusBar" style="display: none;">
+        <div class="location-info">
+            <span class="live-indicator">LIVE</span>
+            <span>Location: <strong id="currentLocation">Detecting...</strong></span>
+            <span>Covered: <strong id="distanceCovered">0</strong> km</span>
+        </div>
+        <div>ETA: <span id="eta">--:--</span></div>
+        <div>Left: <span id="remainingDistance">--</span> km</div>
+    </div>
+
+    <div class="main-container">
+        <div class="chat-area" id="assistantChatArea">
+            <div class="chat-header">
+                <h2>Trip Assistant</h2>
+                <p>Aapka AI travel companion - jo puchna ho pucho!</p>
+            </div>
+            <div class="message ai-message" id="assistantWelcome">Namaste! Main aapka AI trip assistant hoon. Aaj kis cheez mein help chahiye?</div>
+        </div>
+
+        <div class="sidebar">
+            <div class="map-shell" id="mapShellCard">
+                <div class="map-header">
+                    <div>
+                        <p class="map-eyebrow">Live Trip Map</p>
+                        <h3 class="map-title">Road Route Tracker</h3>
+                        <p class="map-subtitle" id="mapRouteSummary">Live location aur route progress yahan dikhega.</p>
+                    </div>
+                    <div class="map-actions">
+                        <button type="button" class="map-action-btn" onclick="focusLiveLocation()">Locate Me</button>
+                        <button type="button" class="map-action-btn" id="mapToggleBtn" onclick="toggleInlineMap()">Show Route</button>
+                        <div class="map-status-pill" id="mapStatusPill">Tracking</div>
+                    </div>
+                </div>
+                <div class="route-chip-grid">
+                    <div class="route-chip">
+                        <span class="route-chip-label">Covered</span>
+                        <span class="route-chip-value"><span id="routeCoveredValue">0.0</span> km</span>
+                    </div>
+                    <div class="route-chip">
+                        <span class="route-chip-label">Remaining</span>
+                        <span class="route-chip-value"><span id="routeRemainingValue">--</span> km</span>
+                    </div>
+                    <div class="route-chip">
+                        <span class="route-chip-label">Speed</span>
+                        <span class="route-chip-value"><span id="routeSpeedValue">--</span></span>
+                    </div>
+                </div>
+                <div class="mini-map-container">
+                    <div id="miniMap"></div>
+                    <div class="map-fallback" id="mapFallback">
+                        <div class="map-fallback-copy">
+                            <strong id="mapFallbackTitle">Loading map...</strong>
+                            <span id="mapFallbackText">Live route tayyar ho raha hai.</span>
+                        </div>
+                    </div>
+                    <div class="map-overlay">
+                        <div class="route-progress-card">
+                            <div class="route-progress-head">
+                                <span>Trip progress</span>
+                                <strong id="routeProgressLabel">0%</strong>
+                            </div>
+                            <div class="route-progress-track">
+                                <div class="route-progress-fill" id="routeProgressFill"></div>
+                            </div>
+                            <div class="route-progress-meta">
+                                <span id="routeProgressStart">Origin</span>
+                                <span id="routeProgressEta">ETA --:--</span>
+                                <span id="routeProgressEnd">Destination</span>
+                            </div>
+                        </div>
+                        <div class="route-legend">
+                            <span class="legend-item"><span class="legend-swatch legend-route"></span>Route</span>
+                            <span class="legend-item"><span class="legend-swatch legend-live"></span>Live Location</span>
+                            <span class="legend-item"><span class="legend-swatch legend-destination"></span>Destination</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="location-panel">
+                <h4>Your Location <span class="live-badge">LIVE</span></h4>
+                <div class="current-loc" id="currentLocDisplay"><span style="color:#10b981">●</span> Detecting...</div>
+                <div class="coords" id="coordsDisplay">Waiting for GPS...</div>
+                <div class="accuracy" id="accuracyDisplay">Accuracy: --</div>
+                <div class="route-stops">
+                    <div class="route-stop">
+                        <span class="route-stop-marker" style="background:#f59e0b;"></span>
+                        <div>
+                            <span class="route-stop-label">Start</span>
+                            <span class="route-stop-value" id="tripStartLabel">Trip start not set</span>
+                        </div>
+                    </div>
+                    <div class="route-stop">
+                        <span class="route-stop-marker" style="background:#60a5fa;"></span>
+                        <div>
+                            <span class="route-stop-label">Destination</span>
+                            <span class="route-stop-value" id="tripDestinationLabel">Destination not set</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Quick Actions</h3>
+            <button onclick="handleQuickAction('map')"><span>🗺</span> Map</button>
+            <button onclick="handleQuickAction('final_plan')"><span>🧾</span> Final Plan</button>
+            <button onclick="handleQuickAction('weather')"><span>🌤</span> Weather</button>
+            <button onclick="handleQuickAction('food')"><span>🍔</span> Food</button>
+            <button onclick="handleQuickAction('hotels')"><span>🏨</span> Hotels</button>
+            <button onclick="handleQuickAction('places')"><span>🏛</span> Best Places</button>
+            <button onclick="openBookingSection()"><span>🎫</span> Tickets Book</button>
+            <button onclick="handleQuickAction('emergency')"><span>🚨</span> Emergency</button>
+        </div>
+    </div>
+
+    <div class="input-bar">
+        <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceAssistant()" title="Voice Assistant">▶</button>
+        <div class="input-wrapper">
+            <input type="text" id="assistantInput" placeholder="Trip ke baare mein kuch bhi pucho...">
+        </div>
+        <button class="send-btn" onclick="sendAssistantMessage()">➤</button>
+    </div>
+
+    <div class="saved-plan-modal" id="savedPlanModal">
+        <div class="saved-plan-card">
+            <div class="saved-plan-head">
+                <div>
+                    <h2>Saved Final Plan</h2>
+                    <p id="savedPlanMeta">Plan phase ka saved final plan yahan dikh raha hai.</p>
+                </div>
+                <button class="saved-plan-close" onclick="closeSavedPlanModal()">X</button>
+            </div>
+            <div class="saved-plan-body" id="savedPlanBody"></div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal">
+        <div style="max-width:800px;margin:20px auto;background:white;border-radius:16px;padding:30px;position:relative;">
+            <button onclick="closeBookingSection()" style="position:absolute;top:15px;right:20px;background:#ef4444;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;">X</button>
+            <h2 style="color:#2d1b13;margin-bottom:10px;">Demo Booking</h2>
+            <p style="color:#666;margin-bottom:8px;">Choose your booking type below:</p>
+            <p style="color:#a16207;font-size:0.85rem;margin-bottom:25px;">This is a demo flow only. No real booking or payment will happen.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+                <div style="background:linear-gradient(135deg,#fff5eb,#ffe8d6);padding:25px;border-radius:12px;text-align:center;cursor:pointer;" onclick="openBookingForm('hotel')">
+                    <div style="font-size:3rem;margin-bottom:10px;">🏨</div>
+                    <h3 style="color:#2d1b13;margin-bottom:8px;">Hotel Stay</h3>
+                </div>
+                <div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);padding:25px;border-radius:12px;text-align:center;cursor:pointer;" onclick="openBookingForm('restaurant')">
+                    <div style="font-size:3rem;margin-bottom:10px;">🍽</div>
+                    <h3 style="color:#2d1b13;margin-bottom:8px;">Restaurant</h3>
+                </div>
+                <div style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);padding:25px;border-radius:12px;text-align:center;cursor:pointer;" onclick="openBookingForm('train')">
+                    <div style="font-size:3rem;margin-bottom:10px;">🚂</div>
+                    <h3 style="color:#2d1b13;margin-bottom:8px;">Train Tickets</h3>
+                </div>
+                <div style="background:linear-gradient(135deg,#f3e5f5,#e1bee7);padding:25px;border-radius:12px;text-align:center;cursor:pointer;" onclick="openBookingForm('flight')">
+                    <div style="font-size:3rem;margin-bottom:10px;">✈</div>
+                    <h3 style="color:#2d1b13;margin-bottom:8px;">Flight Tickets</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Form Modal -->
+    <div id="bookingFormModal">
+        <div style="max-width:560px;max-height:85vh;overflow-y:auto;margin:20px auto;background:white;border-radius:16px;padding:30px;position:relative;">
+            <button onclick="closeBookingForm()" style="position:absolute;top:15px;right:20px;background:#ef4444;color:white;border:none;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;">X</button>
+            <h2 id="bookingFormTitle" style="color:#2d1b13;margin-bottom:20px;">Booking Form</h2>
+            <form id="bookingForm" onsubmit="submitBooking(event)">
+                <div id="formFields" style="display:flex;flex-direction:column;gap:15px;"></div>
+                <button type="submit" id="bookingSubmitBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,#f28c38,#ff6b35);color:white;border:none;border-radius:10px;font-size:1rem;margin-top:20px;cursor:pointer;">Find Best Demo Options</button>
+                <button type="button" onclick="backToBookingTypes()" style="width:100%;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;font-size:0.95rem;margin-top:10px;cursor:pointer;">Back to Booking Types</button>
+            </form>
+            <div id="bookingOptionsSection" style="display:none;margin-top:22px;border-top:1px solid #eee;padding-top:18px;">
+                <h3 style="color:#2d1b13;margin:0 0 8px 0;">Best Demo Options</h3>
+                <p id="bookingOptionsMeta" style="display:none;color:#666;font-size:0.88rem;margin:0 0 12px 0;"></p>
+                <div id="bookingOptionsGrid" style="display:flex;flex-direction:column;gap:12px;"></div>
+                <button type="button" id="bookingConfirmBtn" onclick="showBookingCustomerForm()" style="display:none;width:100%;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:white;border:none;border-radius:10px;font-size:1rem;margin-top:14px;cursor:pointer;">Continue with Selected Option</button>
+            </div>
+            <div id="bookingCustomerSection" style="display:none;margin-top:22px;border-top:1px solid #eee;padding-top:18px;">
+                <h3 style="color:#2d1b13;margin:0 0 8px 0;">Traveler Information</h3>
+                <p style="color:#666;font-size:0.88rem;margin:0 0 14px 0;">Selected option ke liye traveler/contact details fill karo.</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>
+                            <label style="display:block;margin-bottom:5px;font-weight:600;">Name</label>
+                            <input type="text" id="bookingCustomerName" placeholder="Full name" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;">
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:5px;font-weight:600;">Phone</label>
+                            <input type="tel" id="bookingCustomerPhone" placeholder="Mobile number" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">Email</label>
+                        <input type="email" id="bookingCustomerEmail" placeholder="Email address" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;margin-bottom:5px;font-weight:600;">Special Request</label>
+                        <textarea id="bookingCustomerNotes" rows="3" placeholder="Any check-in, seating, meal, or travel notes" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;font-family:inherit;resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <button type="button" id="bookingCompleteBtn" onclick="confirmSelectedDemoBooking()" style="width:100%;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:white;border:none;border-radius:10px;font-size:1rem;margin-top:14px;cursor:pointer;">Complete Demo Booking</button>
+                <button type="button" onclick="hideBookingCustomerForm()" style="width:100%;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;font-size:0.95rem;margin-top:10px;cursor:pointer;">Back to Options</button>
+            </div>
+            <div id="bookingFinalSection" style="display:none;margin-top:22px;border-top:1px solid #eee;padding-top:18px;">
+                <h3 style="color:#2d1b13;margin:0 0 8px 0;">Demo Booking Receipt</h3>
+                <div id="bookingFinalContent" style="display:flex;flex-direction:column;gap:10px;"></div>
+                <button onclick="closeBookingForm()" style="width:100%;padding:14px;background:#f28c38;color:white;border:none;border-radius:10px;font-size:1rem;margin-top:16px;cursor:pointer;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        var API_BASE = (window.location.protocol.indexOf('http') === 0 && window.location.port === '5000')
+            ? window.location.origin
+            : 'http://127.0.0.1:5000';
+        
+        var currentPosition = null, miniMap = null, miniMarker = null;
+        var totalDistance = 0;
+        var lastPosition = null, lastUpdateTime = null;
+        var isListening = false, isSpeaking = false;
+        var speechRecognition = null, tripSession = null;
+        var currentSpeed = 0;
+        var demoBookingOptions = [];
+        var selectedDemoBookingOffer = null;
+        var pendingBookingPayload = null;
+        var pendingBookingCustomer = null;
+        var currentDemoBooking = null;
+        var voiceAssistantEnabled = false;
+        var routeOriginMarker = null, routeDestinationMarker = null, routeLiveMarker = null;
+        var routeMainLine = null, routeCompletedLine = null, routeFallbackLine = null, routeLiveHalo = null;
+        var routeCoordinates = [];
+        var routeRequestKey = '';
+        var routeRequestInFlight = false;
+        var cityCoordCache = {};
+        var resolvedTripEndpoints = null;
+        var tripEndpointPromise = null;
+        var speechJobId = 0;
+        
+        var cityCoords = {
+            'mumbai': { lat: 19.0760, lng: 72.8777 },
+            'delhi': { lat: 28.7041, lng: 77.1025 },
+            'goa': { lat: 15.2993, lng: 74.1240 },
+            'bangalore': { lat: 12.9716, lng: 77.5946 },
+            'hyderabad': { lat: 17.3850, lng: 78.4867 },
+            'chennai': { lat: 13.0827, lng: 80.2707 },
+            'kolkata': { lat: 22.5726, lng: 88.3639 },
+            'jaipur': { lat: 26.9124, lng: 75.7873 },
+            'kerala': { lat: 10.8505, lng: 76.2711 },
+            'manali': { lat: 32.2396, lng: 77.1887 },
+            'shimla': { lat: 31.1048, lng: 77.1734 }
+        };
+        Object.keys(cityCoords).forEach(function(key) {
+            cityCoordCache[key] = cityCoords[key];
+        });
+        
+        var bookingTypes = {
+            'hotel': { title: 'Hotel Stay' },
+            'restaurant': { title: 'Restaurant' },
+            'train': { title: 'Train Tickets' },
+            'flight': { title: 'Flight Tickets' }
+        };
+        var currentBookingType = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            tripSession = getTripSession();
+            initMiniMap();
+            initSpeechRecognition();
+            initTrip();
+            detectLocation();
+            syncVoiceButton();
+            scheduleMapRefresh();
+        });
+
+        function getTripSession() {
+            try { 
+                var raw = localStorage.getItem("activeTripSession"); 
+                return raw ? JSON.parse(raw) : null; 
+            } catch (e) { return null; }
+        }
+
+        function initMiniMap() {
+            if (!window.L) {
+                setMapFallback('Map unavailable', 'Map library load nahi hui. Page refresh karke dubara try karo.');
+                return;
+            }
+            miniMap = L.map('miniMap', { zoomControl: false, attributionControl: true }).setView([20.5937, 78.9629], 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(miniMap);
+            routeLiveHalo = L.circleMarker([20.5937, 78.9629], {
+                radius: 18,
+                color: 'rgba(34, 197, 94, 0.35)',
+                fillColor: 'rgba(34, 197, 94, 0.18)',
+                fillOpacity: 1,
+                weight: 1
+            }).addTo(miniMap);
+            clearMapFallback();
+            window.addEventListener('resize', scheduleMapRefresh);
+            miniMap.whenReady(function() {
+                scheduleMapRefresh();
+            });
+        }
+
+        function initTrip() {
+            tripSession = tripSession || getTripSession();
+            updateRouteLabels();
+            if (tripSession && tripSession.tripData) {
+                document.getElementById('tripStatusBar').style.display = 'flex';
+                var totalDist = calculateEstimatedDistance(tripSession.tripData.from, tripSession.tripData.to);
+                document.getElementById('remainingDistance').textContent = totalDist;
+                updateMapRoute();
+                
+                var greeting = 'Namaste! Aapki trip ' + tripSession.tripData.from + ' se ' + tripSession.tripData.to + ' ke liye start ho gayi hai! Main aapka AI travel assistant hoon.';
+                addMessage(greeting, 'ai');
+                speakText(greeting);
+            } else {
+                document.getElementById('mapRouteSummary').textContent = 'Live location track ho raha hai. Trip start karoge to full route dikh jayega.';
+                setMapFallback('Waiting for trip route', 'Trip start hone ke baad yahan live route aur road path dikh jayega.');
+            }
+        }
+
+        function setMapFallback(title, copy) {
+            var fallback = document.getElementById('mapFallback');
+            if (!fallback) return;
+            document.getElementById('mapFallbackTitle').textContent = title || 'Map unavailable';
+            document.getElementById('mapFallbackText').textContent = copy || 'Map abhi available nahi hai.';
+            fallback.classList.add('active');
+            var pill = document.getElementById('mapStatusPill');
+            if (pill) pill.textContent = 'Fallback';
+        }
+
+        function clearMapFallback() {
+            var fallback = document.getElementById('mapFallback');
+            if (fallback) fallback.classList.remove('active');
+            var pill = document.getElementById('mapStatusPill');
+            if (pill) pill.textContent = 'Tracking';
+        }
+
+        function scheduleMapRefresh() {
+            if (!miniMap) return;
+            setTimeout(function() {
+                if (miniMap) {
+                    miniMap.invalidateSize();
+                }
+            }, 120);
+        }
+
+        function toggleInlineMap(forceOpen) {
+            var shell = document.getElementById('mapShellCard');
+            var toggleBtn = document.getElementById('mapToggleBtn');
+            if (!shell) return;
+
+            var shouldOpen = typeof forceOpen === 'boolean'
+                ? forceOpen
+                : !shell.classList.contains('expanded');
+
+            shell.classList.toggle('expanded', shouldOpen);
+            if (toggleBtn) {
+                toggleBtn.textContent = shouldOpen ? 'Close Map' : 'Show Map';
+            }
+
+            if (!shouldOpen) {
+                shell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            scheduleMapRefresh();
+        }
+
+        function getSavedFinalPlanData() {
+            var session = getTripSession();
+            var sessionPlanHtml = session && session.finalPlanHtml ? session.finalPlanHtml : '';
+            var storedFinalPlan = localStorage.getItem('finalTripPlan') || '';
+            var planHtml = sessionPlanHtml || storedFinalPlan;
+            var meta = [];
+
+            if (session && session.tripData) {
+                meta.push((session.tripData.from || 'Start') + ' to ' + (session.tripData.to || 'Destination'));
+            }
+            if (session && session.savedAt) {
+                try {
+                    meta.push('Saved ' + new Date(session.savedAt).toLocaleString());
+                } catch (e) {}
+            }
+
+            return {
+                html: planHtml,
+                metaText: meta.join(' | ') || 'Plan phase ka saved final plan yahan dikh raha hai.'
+            };
+        }
+
+        function openSavedPlanModal() {
+            var modal = document.getElementById('savedPlanModal');
+            var body = document.getElementById('savedPlanBody');
+            var meta = document.getElementById('savedPlanMeta');
+            var planData = getSavedFinalPlanData();
+
+            if (!modal || !body || !meta) return;
+
+            meta.textContent = planData.metaText;
+            if (planData.html) {
+                body.innerHTML = planData.html;
+                addMessage('Aapka saved final plan yahan open kar diya hai.', 'ai');
+            } else {
+                body.innerHTML = '<div class="saved-plan-empty"><strong>Final plan abhi save nahi hai.</strong><div style="margin-top:8px;">Plan page ke final step par jaake plan save karo, phir yahan se directly dekh paoge.</div></div>';
+                addMessage('Saved final plan nahi mila. Plan page ke final step par plan save karo.', 'ai');
+            }
+            modal.classList.add('active');
+        }
+
+        function closeSavedPlanModal() {
+            var modal = document.getElementById('savedPlanModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        function updateRouteLabels() {
+            var startLabel = document.getElementById('tripStartLabel');
+            var destinationLabel = document.getElementById('tripDestinationLabel');
+            var progressStart = document.getElementById('routeProgressStart');
+            var progressEnd = document.getElementById('routeProgressEnd');
+            var routeSummary = document.getElementById('mapRouteSummary');
+
+            if (tripSession && tripSession.tripData) {
+                var from = tripSession.tripData.from || 'Origin';
+                var to = tripSession.tripData.to || 'Destination';
+                startLabel.textContent = from;
+                destinationLabel.textContent = to;
+                progressStart.textContent = from;
+                progressEnd.textContent = to;
+                routeSummary.textContent = from + ' to ' + to + ' live route with progress tracking.';
+            } else {
+                startLabel.textContent = 'Trip start not set';
+                destinationLabel.textContent = 'Destination not set';
+                progressStart.textContent = 'Origin';
+                progressEnd.textContent = 'Destination';
+                routeSummary.textContent = 'Live location aur route progress yahan dikhega.';
+            }
+        }
+
+        function normalizeCityKey(cityName) {
+            return String(cityName || '').trim().toLowerCase();
+        }
+
+        async function fetchCityCoords(cityName) {
+            var normalized = normalizeCityKey(cityName);
+            if (!normalized) return null;
+
+            if (cityCoordCache[normalized]) {
+                return cityCoordCache[normalized];
+            }
+
+            var firstWord = normalized.split(' ')[0];
+            if (cityCoordCache[firstWord]) {
+                cityCoordCache[normalized] = cityCoordCache[firstWord];
+                return cityCoordCache[normalized];
+            }
+
+            try {
+                var response = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(cityName) + '&count=1&language=en&format=json');
+                if (!response.ok) {
+                    throw new Error('Geocoding failed');
+                }
+                var data = await response.json();
+                if (!data.results || !data.results.length) {
+                    throw new Error('City not found');
+                }
+                var top = data.results[0];
+                var coords = { lat: Number(top.latitude), lng: Number(top.longitude) };
+                cityCoordCache[normalized] = coords;
+                if (top.name) {
+                    cityCoordCache[normalizeCityKey(top.name)] = coords;
+                }
+                return coords;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function resolveTripEndpoints(forceRefresh) {
+            if (!tripSession || !tripSession.tripData) return null;
+
+            var from = tripSession.tripData.from || '';
+            var to = tripSession.tripData.to || '';
+            var routeKey = normalizeCityKey(from) + '->' + normalizeCityKey(to);
+
+            if (!forceRefresh && resolvedTripEndpoints && resolvedTripEndpoints.key === routeKey) {
+                return resolvedTripEndpoints;
+            }
+            if (!forceRefresh && tripEndpointPromise) {
+                return tripEndpointPromise;
+            }
+
+            tripEndpointPromise = Promise.all([
+                fetchCityCoords(from),
+                fetchCityCoords(to)
+            ]).then(function(results) {
+                var origin = results[0];
+                var destination = results[1];
+                if (!origin || !destination) {
+                    resolvedTripEndpoints = null;
+                    return null;
+                }
+                resolvedTripEndpoints = {
+                    key: routeKey,
+                    origin: origin,
+                    destination: destination,
+                    from: from,
+                    to: to
+                };
+                return resolvedTripEndpoints;
+            }).finally(function() {
+                tripEndpointPromise = null;
+            });
+
+            return tripEndpointPromise;
+        }
+
+        function createRouteMarker(color, glyph) {
+            return L.divIcon({
+                className: 'route-map-marker',
+                html: '<div style="width:22px;height:22px;border-radius:50%;background:' + color + ';border:3px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;box-shadow:0 8px 18px rgba(15,23,42,0.28);">' + glyph + '</div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+                popupAnchor: [0, -10]
+            });
+        }
+
+        function bindMarkerPopup(marker, title, copy) {
+            if (!marker) return;
+            marker.bindPopup(
+                '<div class="map-popup-title">' + escapeHtml(title) + '</div>' +
+                '<div class="map-popup-copy">' + escapeHtml(copy) + '</div>'
+            );
+        }
+
+        function setMarkerPosition(markerRefName, latLng, icon, title, copy) {
+            if (!miniMap || !latLng) return null;
+            if (!window[markerRefName]) {
+                window[markerRefName] = L.marker(latLng, { icon: icon }).addTo(miniMap);
+            } else {
+                window[markerRefName].setLatLng(latLng);
+            }
+            bindMarkerPopup(window[markerRefName], title, copy);
+            return window[markerRefName];
+        }
+
+        function getTripEndpoints() {
+            return resolvedTripEndpoints;
+        }
+
+        function clearRouteLayers() {
+            [routeMainLine, routeCompletedLine, routeFallbackLine].forEach(function(layer) {
+                if (layer && miniMap) {
+                    miniMap.removeLayer(layer);
+                }
+            });
+            routeMainLine = null;
+            routeCompletedLine = null;
+            routeFallbackLine = null;
+        }
+
+        function removeMarker(markerName) {
+            if (window[markerName] && miniMap) {
+                miniMap.removeLayer(window[markerName]);
+                window[markerName] = null;
+            }
+        }
+
+        function fitMapToPoints(points) {
+            if (!miniMap || !points || !points.length) return;
+            var bounds = L.latLngBounds(points);
+            if (bounds.isValid()) {
+                miniMap.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }
+
+        function buildFallbackRoute(points) {
+            return points.filter(Boolean).map(function(point) {
+                return [point.lat, point.lng];
+            });
+        }
+
+        async function fetchRoadRoute(origin, destination) {
+            var url = 'https://router.project-osrm.org/route/v1/driving/' +
+                origin.lng + ',' + origin.lat + ';' + destination.lng + ',' + destination.lat +
+                '?overview=full&geometries=geojson';
+            var response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Route data unavailable');
+            }
+            var data = await response.json();
+            if (!data.routes || !data.routes.length || !data.routes[0].geometry || !data.routes[0].geometry.coordinates) {
+                throw new Error('Invalid route payload');
+            }
+            return data.routes[0].geometry.coordinates.map(function(pair) {
+                return [pair[1], pair[0]];
+            });
+        }
+
+        function findNearestRouteIndex(latLng) {
+            if (!routeCoordinates.length || !latLng) return -1;
+            var bestIndex = -1;
+            var bestDistance = Infinity;
+            for (var i = 0; i < routeCoordinates.length; i++) {
+                var point = routeCoordinates[i];
+                var distance = Math.pow(point[0] - latLng.lat, 2) + Math.pow(point[1] - latLng.lng, 2);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+            return bestIndex;
+        }
+
+        function renderRouteProgressLine() {
+            if (!miniMap) return;
+
+            if (routeCompletedLine) {
+                miniMap.removeLayer(routeCompletedLine);
+                routeCompletedLine = null;
+            }
+            if (routeFallbackLine) {
+                miniMap.removeLayer(routeFallbackLine);
+                routeFallbackLine = null;
+            }
+
+            if (!currentPosition) return;
+
+            if (routeCoordinates.length > 1) {
+                var nearestIndex = findNearestRouteIndex(currentPosition);
+                if (nearestIndex >= 1) {
+                    var completedCoords = routeCoordinates.slice(0, nearestIndex + 1);
+                    completedCoords.push([currentPosition.lat, currentPosition.lng]);
+                    routeCompletedLine = L.polyline(completedCoords, {
+                        color: '#22c55e',
+                        weight: 6,
+                        opacity: 0.95,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(miniMap);
+                }
+            } else {
+                var endpoints = getTripEndpoints();
+                if (endpoints) {
+                    routeFallbackLine = L.polyline(buildFallbackRoute([endpoints.origin, currentPosition, endpoints.destination]), {
+                        color: '#22c55e',
+                        weight: 5,
+                        opacity: 0.9,
+                        dashArray: '10 10',
+                        lineCap: 'round'
+                    }).addTo(miniMap);
+                }
+            }
+        }
+
+        async function updateMapRoute() {
+            if (!miniMap) return;
+
+            var endpoints = await resolveTripEndpoints();
+            if (!endpoints) {
+                clearRouteLayers();
+                routeCoordinates = [];
+                routeRequestKey = '';
+                removeMarker('routeOriginMarker');
+                removeMarker('routeDestinationMarker');
+                var hasTripRoute = !!(tripSession && tripSession.tripData);
+                if (hasTripRoute) {
+                    setMapFallback('Route not ready', 'Trip route resolve nahi ho pa raha. City names check karo ya page refresh karo.');
+                }
+                if (currentPosition) {
+                    fitMapToPoints([[currentPosition.lat, currentPosition.lng]]);
+                    if (!hasTripRoute) {
+                        clearMapFallback();
+                    }
+                }
+                return;
+            }
+
+            setMarkerPosition('routeOriginMarker', [endpoints.origin.lat, endpoints.origin.lng], createRouteMarker('#f59e0b', 'S'), endpoints.from, 'Trip start point');
+            setMarkerPosition('routeDestinationMarker', [endpoints.destination.lat, endpoints.destination.lng], createRouteMarker('#60a5fa', 'D'), endpoints.to, 'Destination point');
+
+            var routeKey = endpoints.from + '->' + endpoints.to;
+            if (routeRequestKey && routeRequestKey !== routeKey) {
+                routeCoordinates = [];
+                routeRequestKey = '';
+            }
+            if (!routeCoordinates.length && !routeRequestInFlight) {
+                routeRequestKey = routeKey;
+                routeRequestInFlight = true;
+                try {
+                    routeCoordinates = await fetchRoadRoute(endpoints.origin, endpoints.destination);
+                    clearMapFallback();
+                } catch (error) {
+                    routeCoordinates = buildFallbackRoute([endpoints.origin, endpoints.destination]);
+                    setMapFallback('Road route unavailable', 'Live road path load nahi hua, simple direct route yahi page par dikhaya ja raha hai.');
+                } finally {
+                    routeRequestInFlight = false;
+                }
+            }
+
+            clearRouteLayers();
+            if (routeCoordinates.length > 1) {
+                routeMainLine = L.polyline(routeCoordinates, {
+                    color: '#f97316',
+                    weight: 6,
+                    opacity: 0.82,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(miniMap);
+            }
+
+            renderRouteProgressLine();
+
+            var pointsToFit = routeCoordinates.length > 1
+                ? routeCoordinates.slice()
+                : buildFallbackRoute([endpoints.origin, endpoints.destination]);
+            if (currentPosition) {
+                pointsToFit.push([currentPosition.lat, currentPosition.lng]);
+            }
+            fitMapToPoints(pointsToFit);
+            scheduleMapRefresh();
+        }
+
+        function getCityCoords(cityName) {
+            if (!cityName) return null;
+            var normalized = normalizeCityKey(cityName);
+            return cityCoordCache[normalized] || cityCoordCache[normalized.split(' ')[0]] || null;
+        }
+
+        function calculateEstimatedDistance(from, to) {
+            var fromCoords = getCityCoords(from);
+            var toCoords = getCityCoords(to);
+            if (fromCoords && toCoords) return Math.round(calculateDistance(fromCoords, toCoords));
+            return 600;
+        }
+
+        function detectLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(updateLocation, handleLocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            } else {
+                document.getElementById('currentLocDisplay').innerHTML = "<span>Location not supported</span>";
+                setMapFallback('Location not supported', 'Browser location support available nahi hai, isliye live map limited mode mein hai.');
+            }
+        }
+
+        function updateLocation(position) {
+            var newPosition = { lat: position.coords.latitude, lng: position.coords.longitude };
+            var previousPosition = lastPosition ? { lat: lastPosition.lat, lng: lastPosition.lng } : null;
+
+            if (previousPosition && lastUpdateTime) {
+                var timeDiff = (Date.now() - lastUpdateTime) / 1000;
+                if (timeDiff > 0) {
+                    var distDiff = calculateDistance(previousPosition, newPosition) * 1000;
+                    currentSpeed = Math.round((distDiff / timeDiff) * 3.6);
+                }
+            }
+            currentPosition = newPosition;
+            
+            document.getElementById('currentLocDisplay').innerHTML = '<span style="color:#10b981">●</span> ' + currentPosition.lat.toFixed(5) + ', ' + currentPosition.lng.toFixed(5);
+            document.getElementById('coordsDisplay').textContent = currentPosition.lat.toFixed(4) + ' deg N, ' + currentPosition.lng.toFixed(4) + ' deg E';
+            document.getElementById('accuracyDisplay').textContent = 'Accuracy: +/- ' + position.coords.accuracy.toFixed(0) + 'm';
+            document.getElementById('currentLocation').textContent = currentPosition.lat.toFixed(2) + ' deg N, ' + currentPosition.lng.toFixed(2) + ' deg E';
+            document.getElementById('routeSpeedValue').textContent = currentSpeed > 0 ? currentSpeed + ' km/h' : '--';
+
+            if (previousPosition) {
+                var dist = calculateDistance(previousPosition, currentPosition);
+                totalDistance += dist;
+                document.getElementById('distanceCovered').textContent = totalDistance.toFixed(1);
+                document.getElementById('routeCoveredValue').textContent = totalDistance.toFixed(1);
+            }
+            lastPosition = { lat: currentPosition.lat, lng: currentPosition.lng };
+            lastUpdateTime = Date.now();
+
+            if (routeLiveHalo) routeLiveHalo.setLatLng([currentPosition.lat, currentPosition.lng]);
+            setMarkerPosition('routeLiveMarker', [currentPosition.lat, currentPosition.lng], createRouteMarker('#22c55e', 'L'), 'Live Location', currentPosition.lat.toFixed(5) + ', ' + currentPosition.lng.toFixed(5));
+            if (miniMap && !tripSession) miniMap.setView([currentPosition.lat, currentPosition.lng], 13);
+            clearMapFallback();
+            updateMapRoute();
+            updateTripProgress();
+        }
+
+        function handleLocationError(error) {
+            console.error('Location error:', error);
+            document.getElementById('currentLocDisplay').innerHTML = "<span>Location unavailable</span>";
+            setMapFallback('Location blocked', 'Location permission allow karo ya browser settings check karo. Map limited mode mein yahi page par rahega.');
+        }
+
+        async function focusLiveLocation() {
+            if (miniMap && currentPosition) {
+                toggleInlineMap(true);
+                miniMap.setView([currentPosition.lat, currentPosition.lng], 14);
+                scheduleMapRefresh();
+                return;
+            }
+            var endpoints = await resolveTripEndpoints();
+            if (miniMap && endpoints) {
+                toggleInlineMap(true);
+                fitMapToPoints(buildFallbackRoute([endpoints.origin, endpoints.destination]));
+                scheduleMapRefresh();
+            }
+        }
+
+        function openExternalRoute() {
+            toggleInlineMap(true);
+            updateMapRoute();
+            focusLiveLocation();
+        }
+
+        function updateTripProgress() {
+            if (!tripSession || !tripSession.tripData) {
+                document.getElementById('routeRemainingValue').textContent = '--';
+                document.getElementById('routeProgressLabel').textContent = '0%';
+                document.getElementById('routeProgressFill').style.width = '0%';
+                document.getElementById('routeProgressEta').textContent = 'ETA --:--';
+                return;
+            }
+            var estimatedTotal = calculateEstimatedDistance(tripSession.tripData.from, tripSession.tripData.to);
+            var remaining = Math.max(estimatedTotal - totalDistance, 0);
+            document.getElementById('remainingDistance').textContent = remaining.toFixed(0);
+            document.getElementById('routeRemainingValue').textContent = remaining.toFixed(0);
+            document.getElementById('routeCoveredValue').textContent = totalDistance.toFixed(1);
+
+            var progressPercent = estimatedTotal > 0 ? Math.min((totalDistance / estimatedTotal) * 100, 100) : 0;
+            document.getElementById('routeProgressLabel').textContent = Math.round(progressPercent) + '%';
+            document.getElementById('routeProgressFill').style.width = progressPercent.toFixed(1) + '%';
+
+            if (currentSpeed > 0 && remaining > 0) {
+                var etaMs = Date.now() + ((remaining / currentSpeed) * 3600000);
+                var etaDate = new Date(etaMs);
+                document.getElementById('eta').textContent = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('routeProgressEta').textContent = 'ETA ' + document.getElementById('eta').textContent;
+            } else {
+                document.getElementById('eta').textContent = '--:--';
+                document.getElementById('routeProgressEta').textContent = 'ETA --:--';
+            }
+        }
+
+        function calculateDistance(pos1, pos2) {
+            var R = 6371;
+            var dLat = (pos2.lat - pos1.lat) * Math.PI / 180;
+            var dLon = (pos2.lng - pos1.lng) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(pos1.lat * Math.PI / 180) * Math.cos(pos2.lat * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function initSpeechRecognition() {
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                speechRecognition = new SpeechRecognition();
+                speechRecognition.continuous = false;
+                speechRecognition.interimResults = true;
+                speechRecognition.lang = 'en-IN';
+                speechRecognition.onresult = function(event) {
+                    var finalTranscript = '';
+                    for (var i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                    }
+                    if (finalTranscript) {
+                        document.getElementById('assistantInput').value = finalTranscript;
+                        sendAssistantMessage();
+                    }
+                };
+                speechRecognition.onend = function() {
+                    isListening = false;
+                    syncVoiceButton();
+                    if (voiceAssistantEnabled && !isSpeaking) {
+                        setTimeout(startListening, 300);
+                    }
+                };
+                speechRecognition.onerror = function(event) {
+                    console.log('Speech recognition error:', event.error);
+                    isListening = false;
+                    syncVoiceButton();
+                };
+            } else {
+                var btn = document.getElementById('voiceBtn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.title = 'Voice assistant not supported in this browser';
+                }
+            }
+        }
+
+        function getPreferredSpeechVoice() {
+            var voices = window.speechSynthesis.getVoices();
+            if (!voices || voices.length === 0) return null;
+            
+            var femalePatterns = ['female', 'woman', 'zira', 'hazel', 'samantha', 'priya', 'veena'];
+            
+            // Try to find a female voice
+            for (var i = 0; i < voices.length; i++) {
+                var v = voices[i];
+                for (var j = 0; j < femalePatterns.length; j++) {
+                    if (v.name.toLowerCase().indexOf(femalePatterns[j]) !== -1) {
+                        return v;
+                    }
+                }
+            }
+            
+            // Fallback: Indian English
+            for (var i = 0; i < voices.length; i++) {
+                if (voices[i].lang === 'en-IN') return voices[i];
+            }
+            
+            return voices[0];
+        }
+
+        function syncVoiceButton() {
+            var btn = document.getElementById('voiceBtn');
+            if (!btn) return;
+            var isActive = isListening || isSpeaking || voiceAssistantEnabled;
+            btn.textContent = isActive ? '⏹' : '▶';
+            btn.title = isActive ? 'Stop Voice Assistant' : 'Start Voice Assistant';
+        }
+
+        if (window.speechSynthesis && typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+            window.speechSynthesis.onvoiceschanged = function() {
+                syncVoiceButton();
+            };
+        }
+
+        function toggleVoiceAssistant() {
+            if (voiceAssistantEnabled) {
+                voiceAssistantEnabled = false;
+                if (speechRecognition && isListening) {
+                    try { speechRecognition.stop(); } catch (e) {}
+                }
+                window.speechSynthesis.cancel();
+                isListening = false;
+                isSpeaking = false;
+            } else {
+                voiceAssistantEnabled = true;
+                startListening();
+            }
+            syncVoiceButton();
+        }
+
+        function startListening() {
+            if (!voiceAssistantEnabled || !speechRecognition) return;
+            if (isListening) return;
+            isListening = true;
+            syncVoiceButton();
+            try {
+                speechRecognition.start();
+            } catch(e) {
+                console.log('Recognition error:', e);
+                isListening = false;
+                syncVoiceButton();
+            }
+        }
+
+        function normalizeSpeechText(text) {
+            return String(text || '')
+                .replace(/[\u{1F300}-\u{1FAFF}]/gu, ' ')
+                .replace(/[\u2600-\u27BF]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function buildSpeechChunks(text) {
+            var normalized = normalizeSpeechText(text);
+            if (!normalized) return [];
+
+            var sentences = normalized.match(/[^.!?]+[.!?]?/g) || [normalized];
+            var chunks = [];
+            var currentChunk = '';
+
+            for (var i = 0; i < sentences.length; i++) {
+                var sentence = sentences[i].trim();
+                if (!sentence) continue;
+
+                if (!currentChunk) {
+                    currentChunk = sentence;
+                    continue;
+                }
+
+                if ((currentChunk + ' ' + sentence).length <= 180) {
+                    currentChunk += ' ' + sentence;
+                } else {
+                    chunks.push(currentChunk);
+                    currentChunk = sentence;
+                }
+            }
+
+            if (currentChunk) {
+                chunks.push(currentChunk);
+            }
+
+            return chunks.length ? chunks : [normalized];
+        }
+
+        function speakText(text, forceSpeak) {
+            if (!text || (!voiceAssistantEnabled && !forceSpeak)) return;
+
+            var chunks = buildSpeechChunks(text);
+            if (!chunks.length) return;
+
+            speechJobId += 1;
+            var currentJobId = speechJobId;
+
+            if (speechRecognition && isListening) {
+                try { speechRecognition.stop(); } catch (e) {}
+                isListening = false;
+            }
+            window.speechSynthesis.cancel();
+            isSpeaking = true;
+            syncVoiceButton();
+
+            var preferredVoice = getPreferredSpeechVoice();
+            var speakChunkAt = function(index) {
+                if (currentJobId !== speechJobId) {
+                    return;
+                }
+
+                if (index >= chunks.length) {
+                    isSpeaking = false;
+                    isListening = false;
+                    syncVoiceButton();
+                    if (voiceAssistantEnabled) {
+                        setTimeout(startListening, 350);
+                    }
+                    return;
+                }
+
+                var utterance = new SpeechSynthesisUtterance(chunks[index]);
+                utterance.lang = 'en-IN';
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                if (preferredVoice) {
+                    utterance.voice = preferredVoice;
+                }
+                utterance.onend = function() {
+                    setTimeout(function() {
+                        speakChunkAt(index + 1);
+                    }, 60);
+                };
+                utterance.onerror = function() {
+                    setTimeout(function() {
+                        speakChunkAt(index + 1);
+                    }, 60);
+                };
+                window.speechSynthesis.speak(utterance);
+            };
+
+            speakChunkAt(0);
+        }
+
+        function addMessage(text, type) {
+            var chatArea = document.getElementById('assistantChatArea');
+            var msgDiv = document.createElement('div');
+            msgDiv.className = 'message ' + type + '-message';
+            msgDiv.innerText = text;
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '<')
+                .replace(/>/g, '>');
+        }
+
+        async function sendAssistantMessage() {
+            var input = document.getElementById('assistantInput');
+            var message = input.value.trim();
+            if (!message) return;
+            addMessage(message, 'user');
+            input.value = '';
+            
+            var loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai-message';
+            loadingDiv.innerText = 'Thinking...';
+            document.getElementById('assistantChatArea').appendChild(loadingDiv);
+            
+            try {
+                var context = '';
+                if (tripSession) context += 'Trip: ' + tripSession.tripData.from + ' to ' + tripSession.tripData.to + '\n';
+                if (currentPosition) context += "User's current location: " + currentPosition.lat.toFixed(5) + ', ' + currentPosition.lng.toFixed(5) + '\n';
+                if (currentSpeed > 0) context += 'Speed: ' + currentSpeed + ' km/h\n';
+                if (totalDistance > 0) context += 'Distance covered: ' + totalDistance.toFixed(1) + ' km\n';
+                
+                var prompt = context + '\nReply in Hinglish (Hindi + English mix). Be helpful and friendly.\n\nUser: ' + message;
+                
+                var response = await fetch(API_BASE + '/api/assistant/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: prompt })
+                });
+                if (!response.ok) {
+                    throw new Error('Assistant request failed');
+                }
+                var data = await response.json();
+                loadingDiv.remove();
+                
+                var reply = data.reply || 'Sorry, main aapki request process nahin kar paaya.';
+                addMessage(reply, 'ai');
+                speakText(reply);
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage('Connection error. Backend running hai?', 'ai');
+            }
+        }
+
+        document.getElementById('assistantInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') sendAssistantMessage();
+        });
+
+        function getLiveLocationQueryText() {
+            if (currentPosition) {
+                return currentPosition.lat.toFixed(5) + ', ' + currentPosition.lng.toFixed(5);
+            }
+
+            var currentLocNode = document.getElementById('currentLocDisplay');
+            var currentLocText = currentLocNode ? currentLocNode.textContent.replace(/\s+/g, ' ').trim() : '';
+            if (currentLocText && currentLocText !== 'Detecting...' && currentLocText !== 'Location unavailable' && currentLocText !== 'Location not supported') {
+                return currentLocText;
+            }
+
+            return 'my live location';
+        }
+
+        async function handleQuickAction(action) {
+            var query = '';
+            if (action === 'map') {
+                toggleInlineMap(true);
+                focusLiveLocation();
+                addMessage('Map yahi page par khol diya hai. Aap live location aur route yahin dekh sakte ho.', 'ai');
+                return;
+            }
+            if (action === 'final_plan') {
+                openSavedPlanModal();
+                return;
+            }
+            if (action === 'weather') query = 'What is current weather at ' + getLiveLocationQueryText();
+            else if (action === 'food') query = 'Yahan ka best local food suggest karo';
+            else if (action === 'hotels') query = 'Nearby hotels aur unki price range batao';
+            else if (action === 'places') query = 'Yahan ke must-visit places batao';
+            else if (action === 'emergency') query = 'Emergency contacts aur nearest hospital information do';
+            
+            if (query) {
+                document.getElementById('assistantInput').value = query;
+                sendAssistantMessage();
+            }
+        }
+
+        // ============= BOOKING FUNCTIONS =============
+        
+        function openBookingSection() {
+            document.getElementById('bookingModal').classList.add('active');
+            document.getElementById('bookingFormModal').classList.remove('active');
+            resetBookingState();
+            addMessage('Booking section khul gaya. Search form fill karo, option choose karo, phir traveler details bhar ke booking complete karo.', 'ai');
+        }
+        
+        function closeBookingSection() {
+            document.getElementById('bookingModal').classList.remove('active');
+            document.getElementById('bookingFormModal').classList.remove('active');
+            resetBookingState();
+        }
+        
+        function openBookingForm(type) {
+            currentBookingType = type;
+            demoBookingOptions = [];
+            selectedDemoBookingOffer = null;
+            pendingBookingPayload = null;
+            pendingBookingCustomer = null;
+            currentDemoBooking = null;
+            var bookingContext = getActiveBookingContext();
+            
+            document.getElementById('bookingFormTitle').textContent = bookingTypes[type].title;
+            var formFields = document.getElementById('formFields');
+            formFields.innerHTML = '';
+            document.getElementById('bookingModal').classList.remove('active');
+            resetBookingFormView();
+            formFields.innerHTML += buildBookingContextBanner(type, bookingContext);
+            
+            if (type === 'hotel' || type === 'restaurant') {
+                var locationValue = bookingContext.to || '';
+                var locationAttr = bookingContext.to ? ' value="' + escapeAttribute(locationValue) + '"' : '';
+                formFields.innerHTML = 
+                    formFields.innerHTML +
+                    '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Location</label><input type="text" id="bookingLocation" placeholder="City or area name" required' + locationAttr + ' style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>' +
+                    '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Date</label><input type="date" id="bookingDate" required style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>';
+                if (type === 'hotel') {
+                    formFields.innerHTML += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label style="display:block;margin-bottom:5px;font-weight:600;">Nights</label><input type="number" id="bookingNights" value="1" min="1" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div><div><label style="display:block;margin-bottom:5px;font-weight:600;">Guests</label><input type="number" id="bookingGuests" value="1" min="1" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div></div>';
+                } else {
+                    formFields.innerHTML += '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Number of People</label><input type="number" id="bookingPeople" value="2" min="1" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>';
+                }
+            } else if (type === 'train') {
+                var trainFromAttr = bookingContext.from ? ' value="' + escapeAttribute(bookingContext.from) + '"' : '';
+                var trainToAttr = bookingContext.to ? ' value="' + escapeAttribute(bookingContext.to) + '"' : '';
+                formFields.innerHTML = 
+                    formFields.innerHTML +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label style="display:block;margin-bottom:5px;font-weight:600;">From</label><input type="text" id="bookingFrom" placeholder="Station name" required' + trainFromAttr + ' style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div><div><label style="display:block;margin-bottom:5px;font-weight:600;">To</label><input type="text" id="bookingTo" placeholder="Station name" required' + trainToAttr + ' style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div></div>' +
+                    '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Travel Date</label><input type="date" id="bookingTravelDate" required style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>' +
+                    '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Passengers</label><input type="number" id="bookingPassengers" value="1" min="1" max="6" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>';
+            } else if (type === 'flight') {
+                var flightFromAttr = bookingContext.from ? ' value="' + escapeAttribute(bookingContext.from) + '"' : '';
+                var flightToAttr = bookingContext.to ? ' value="' + escapeAttribute(bookingContext.to) + '"' : '';
+                formFields.innerHTML = 
+                    formFields.innerHTML +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label style="display:block;margin-bottom:5px;font-weight:600;">From</label><input type="text" id="bookingFlightFrom" placeholder="City name" required' + flightFromAttr + ' style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div><div><label style="display:block;margin-bottom:5px;font-weight:600;">To</label><input type="text" id="bookingFlightTo" placeholder="City name" required' + flightToAttr + ' style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div></div>' +
+                    '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Departure Date</label><input type="date" id="bookingDepartureDate" required style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>' +
+                    '<div><label style="display:block;margin-bottom:5px;font-weight:600;">Adults</label><input type="number" id="bookingAdults" value="1" min="1" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"></div>';
+            }
+            document.getElementById('bookingFormModal').classList.add('active');
+            setDefaultBookingDates(type);
+            prefillBookingCustomerForm();
+        }
+
+        function backToBookingTypes() {
+            document.getElementById('bookingFormModal').classList.remove('active');
+            document.getElementById('bookingModal').classList.add('active');
+            resetBookingFormView();
+        }
+        
+        function closeBookingForm() { 
+            document.getElementById('bookingFormModal').classList.remove('active');
+            resetBookingFormView();
+        }
+
+        function resetBookingState() {
+            currentBookingType = null;
+            pendingBookingPayload = null;
+            pendingBookingCustomer = null;
+            currentDemoBooking = null;
+            resetBookingFormView();
+        }
+
+        function resetBookingFormView() {
+            document.getElementById('bookingForm').style.display = 'block';
+            document.getElementById('bookingOptionsSection').style.display = 'none';
+            document.getElementById('bookingOptionsMeta').style.display = 'none';
+            document.getElementById('bookingOptionsMeta').textContent = '';
+            document.getElementById('bookingOptionsGrid').innerHTML = '';
+            document.getElementById('bookingCustomerSection').style.display = 'none';
+            document.getElementById('bookingConfirmBtn').style.display = 'none';
+            document.getElementById('bookingFinalSection').style.display = 'none';
+            document.getElementById('bookingFinalContent').innerHTML = '';
+            demoBookingOptions = [];
+            selectedDemoBookingOffer = null;
+            var submitBtn = document.getElementById('bookingSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Find Best Demo Options';
+            }
+            var confirmBtn = document.getElementById('bookingConfirmBtn');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Continue with Selected Option';
+            }
+            var completeBtn = document.getElementById('bookingCompleteBtn');
+            if (completeBtn) {
+                completeBtn.disabled = false;
+                completeBtn.textContent = 'Complete Demo Booking';
+            }
+        }
+
+        function setDefaultBookingDates(type) {
+            var today = new Date();
+            var tomorrow = new Date(today.getTime() + 86400000);
+            var toDateInputValue = function(date) {
+                return date.toISOString().split('T')[0];
+            };
+
+            var singleDateField = document.getElementById('bookingDate');
+            if (singleDateField && !singleDateField.value) {
+                singleDateField.value = toDateInputValue(today);
+            }
+
+            var travelDateField = document.getElementById('bookingTravelDate');
+            if (travelDateField && !travelDateField.value) {
+                travelDateField.value = toDateInputValue(tomorrow);
+            }
+
+            var departureDateField = document.getElementById('bookingDepartureDate');
+            if (departureDateField && !departureDateField.value) {
+                departureDateField.value = toDateInputValue(tomorrow);
+            }
+        }
+
+        function buildDemoBookingPayload() {
+            if (currentBookingType === 'hotel') {
+                return { booking_type: 'hotel', demo_only: false, search: { location: document.getElementById('bookingLocation').value, date: document.getElementById('bookingDate').value, nights: document.getElementById('bookingNights').value, guests: document.getElementById('bookingGuests').value } };
+            }
+            if (currentBookingType === 'restaurant') {
+                return { booking_type: 'restaurant', demo_only: false, search: { location: document.getElementById('bookingLocation').value, date: document.getElementById('bookingDate').value, people: document.getElementById('bookingPeople').value } };
+            }
+            if (currentBookingType === 'train') {
+                return { booking_type: 'train', demo_only: true, search: { from: document.getElementById('bookingFrom').value, to: document.getElementById('bookingTo').value, travel_date: document.getElementById('bookingTravelDate').value, passengers: document.getElementById('bookingPassengers').value } };
+            }
+            return { booking_type: 'flight', demo_only: true, search: { from: document.getElementById('bookingFlightFrom').value, to: document.getElementById('bookingFlightTo').value, departure_date: document.getElementById('bookingDepartureDate').value, travelers: document.getElementById('bookingAdults').value } };
+        }
+
+        function buildDemoCustomerPayload() {
+            return {
+                name: document.getElementById('bookingCustomerName').value,
+                phone: document.getElementById('bookingCustomerPhone').value,
+                email: document.getElementById('bookingCustomerEmail').value,
+                notes: document.getElementById('bookingCustomerNotes').value
+            };
+        }
+
+        function getActiveBookingContext() {
+            var session = getTripSession();
+            var tripData = session && session.tripData ? session.tripData : null;
+            return {
+                hasTrip: !!tripData,
+                from: tripData && tripData.from ? String(tripData.from).trim() : '',
+                to: tripData && tripData.to ? String(tripData.to).trim() : ''
+            };
+        }
+
+        function buildBookingContextBanner(type, bookingContext) {
+            if (!bookingContext.hasTrip) return '';
+            if (type === 'hotel' || type === 'restaurant') {
+                return '<div style="padding:12px 14px;border:1px solid #fed7aa;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:0.86rem;">Trip suggestion: <strong>' + escapeHtml(bookingContext.to) + '</strong>. Aap location edit kar sakte ho aur isi entered place ke hisaab se options milenge.</div>';
+            }
+            return '<div style="padding:12px 14px;border:1px solid #dbeafe;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:0.86rem;">Trip suggestion: <strong>' + escapeHtml(bookingContext.from) + ' to ' + escapeHtml(bookingContext.to) + '</strong>. Route fields editable hain.</div>';
+        }
+
+        function escapeAttribute(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function validateBookingPayload(payload) {
+            var search = (payload && payload.search) || {};
+            var hasRequiredSearch = true;
+
+            if (payload.booking_type === 'hotel' || payload.booking_type === 'restaurant') {
+                hasRequiredSearch = !!search.location && !!search.date;
+            } else if (payload.booking_type === 'train') {
+                hasRequiredSearch = !!search.from && !!search.to && !!search.travel_date;
+            } else if (payload.booking_type === 'flight') {
+                hasRequiredSearch = !!search.from && !!search.to && !!search.departure_date;
+            }
+
+            if (!hasRequiredSearch) {
+                return 'Please fill all required booking details.';
+            }
+            return '';
+        }
+
+        function validateBookingCustomer(customer) {
+            if (!customer.name || !customer.email || !customer.phone) {
+                return 'Please fill your name, phone, and email.';
+            }
+            return '';
+        }
+
+        function prefillBookingCustomerForm() {
+            var nameField = document.getElementById('bookingCustomerName');
+            var phoneField = document.getElementById('bookingCustomerPhone');
+            var emailField = document.getElementById('bookingCustomerEmail');
+            var notesField = document.getElementById('bookingCustomerNotes');
+            if (nameField) nameField.value = '';
+            if (phoneField) phoneField.value = '';
+            if (emailField) emailField.value = '';
+            if (notesField) notesField.value = '';
+        }
+
+        function showBookingCustomerForm() {
+            if (!selectedDemoBookingOffer) {
+                alert('Please select one option first.');
+                return;
+            }
+            document.getElementById('bookingCustomerSection').style.display = 'block';
+            document.getElementById('bookingCustomerSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideBookingCustomerForm() {
+            document.getElementById('bookingCustomerSection').style.display = 'none';
+        }
+
+        function renderDemoBookingOptions(offers) {
+            var grid = document.getElementById('bookingOptionsGrid');
+            var meta = document.getElementById('bookingOptionsMeta');
+            var confirmBtn = document.getElementById('bookingConfirmBtn');
+            demoBookingOptions = offers || [];
+            selectedDemoBookingOffer = null;
+            confirmBtn.style.display = 'none';
+            document.getElementById('bookingCustomerSection').style.display = 'none';
+            meta.style.display = 'none';
+            meta.textContent = '';
+
+            if (pendingBookingPayload && pendingBookingPayload.search) {
+                var bookingLabel = pendingBookingPayload.booking_type === 'hotel'
+                    ? 'hotel'
+                    : pendingBookingPayload.booking_type === 'restaurant'
+                        ? 'restaurant'
+                        : pendingBookingPayload.booking_type;
+                var searchText = pendingBookingPayload.search.location || ((pendingBookingPayload.search.from || '') + (pendingBookingPayload.search.to ? ' to ' + pendingBookingPayload.search.to : ''));
+                if (searchText) {
+                    meta.textContent = 'Showing ' + bookingLabel + ' options for ' + searchText + '.';
+                    meta.style.display = 'block';
+                }
+            }
+
+            if (!demoBookingOptions.length) {
+                grid.innerHTML = '<div style="padding:14px;border:1px dashed #d1d5db;border-radius:12px;color:#666;">No matching options found for this location or route. Change the form values and try again.</div>';
+                document.getElementById('bookingOptionsSection').style.display = 'block';
+                return;
+            }
+
+            grid.innerHTML = demoBookingOptions.map(function(offer, index) {
+                return '<button type="button" onclick="selectDemoBookingOption(' + index + ')" data-demo-offer="' + index + '" style="width:100%;text-align:left;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;">' +
+                    '<div style="font-weight:700;color:#2d1b13;">' + escapeHtml(offer.title) + '</div>' +
+                    '<div style="color:#666;font-size:0.88rem;margin-top:4px;">' + escapeHtml(offer.location) + '</div>' +
+                    '<div style="color:#374151;font-size:0.84rem;margin-top:6px;">' + escapeHtml(offer.details || 'Demo travel option') + '</div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;">' +
+                        '<div style="font-weight:700;color:#f28c38;">INR ' + Number(offer.price || 0).toLocaleString('en-IN') + '</div>' +
+                        '<div style="font-size:0.78rem;color:#666;">Rating ' + escapeHtml(String(offer.rating || '4.0')) + ' / 5</div>' +
+                    '</div></button>';
+            }).join('');
+            document.getElementById('bookingOptionsSection').style.display = 'block';
+        }
+
+        function selectDemoBookingOption(index) {
+            selectedDemoBookingOffer = demoBookingOptions[index] || null;
+            hideBookingCustomerForm();
+            document.querySelectorAll('[data-demo-offer]').forEach(function(node) {
+                node.style.borderColor = '#e5e7eb';
+                node.style.background = '#fff';
+            });
+            var active = document.querySelector('[data-demo-offer="' + index + '"]');
+            if (active) {
+                active.style.borderColor = '#f28c38';
+                active.style.background = '#fff7ed';
+            }
+            document.getElementById('bookingConfirmBtn').style.display = selectedDemoBookingOffer ? 'block' : 'none';
+        }
+
+        async function confirmSelectedDemoBooking() {
+            if (!selectedDemoBookingOffer || !pendingBookingPayload) {
+                alert('Please select one option first.');
+                return;
+            }
+            pendingBookingCustomer = buildDemoCustomerPayload();
+            var customerValidationMessage = validateBookingCustomer(pendingBookingCustomer);
+            if (customerValidationMessage) {
+                alert(customerValidationMessage);
+                return;
+            }
+
+            var completeBtn = document.getElementById('bookingCompleteBtn');
+            completeBtn.disabled = true;
+            completeBtn.textContent = 'Booking...';
+
+            try {
+                var response = await fetch(API_BASE + '/api/assistant/demo-bookings/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        booking_type: pendingBookingPayload.booking_type,
+                        demo_only: pendingBookingPayload.demo_only,
+                        search: pendingBookingPayload.search,
+                        selected_offer_id: selectedDemoBookingOffer.id,
+                        customer: pendingBookingCustomer
+                    })
+                });
+                var data = await response.json();
+                if (!response.ok || !data.booking) {
+                    throw new Error((data && data.error) || 'Booking failed');
+                }
+
+                currentDemoBooking = data.booking;
+                saveDemoBookingToLocalStorage(data.booking);
+                saveDemoInvoiceToLocalStorage(data.booking);
+                showInlineBookingReceipt(data.booking);
+                addMessage('Demo booking ' + data.booking.booking_ref + ' confirm ho gayi hai!', 'ai');
+                speakText('Demo booking confirm ho gayi hai.');
+            } catch (error) {
+                alert(error.message || 'Booking failed. Please try again.');
+            } finally {
+                completeBtn.disabled = false;
+                completeBtn.textContent = 'Complete Demo Booking';
+            }
+        }
+
+        function showInlineBookingReceipt(booking) {
+            document.getElementById('bookingForm').style.display = 'none';
+            document.getElementById('bookingOptionsSection').style.display = 'none';
+            document.getElementById('bookingCustomerSection').style.display = 'none';
+            var pdfButton = booking.pdf_download_url
+                ? '<button type="button" onclick="downloadDemoBookingPdf()" style="width:100%;padding:12px;background:#111827;color:white;border:none;border-radius:10px;font-size:0.95rem;margin-top:16px;cursor:pointer;">Download Demo PDF</button>'
+                : '';
+            var localInvoiceButton = '<button type="button" onclick="downloadDemoInvoiceToDevice()" style="width:100%;padding:12px;background:#f28c38;color:white;border:none;border-radius:10px;font-size:0.95rem;margin-top:10px;cursor:pointer;">Download Invoice to Device</button>';
+            document.getElementById('bookingFinalContent').innerHTML = 
+                '<div style="text-align:center;padding:20px;"><h2 style="color:#28a745;margin-bottom:10px;">🎉 Booking Successful!</h2>' +
+                '<div style="font-weight:700;color:#2d1b13;margin-bottom:15px;">' + escapeHtml(booking.booking_ref) + '</div>' +
+                '<div><strong>Type:</strong> ' + escapeHtml(booking.booking_type) + '</div>' +
+                '<div><strong>Provider:</strong> ' + escapeHtml(booking.offer.title) + '</div>' +
+                '<div><strong>Location:</strong> ' + escapeHtml(booking.offer.location) + '</div>' +
+                '<div><strong>Travel Date:</strong> ' + escapeHtml(booking.travel_date || 'Not specified') + '</div>' +
+                '<div><strong>Customer:</strong> ' + escapeHtml((booking.customer && booking.customer.name) || '') + '</div>' +
+                '<div><strong>Status:</strong> ' + escapeHtml(booking.status || 'Confirmed') + '</div>' +
+                '<div style="font-size:1.2rem;font-weight:700;color:#f28c38;margin-top:10px;">INR ' + Number(booking.amount).toLocaleString('en-IN') + '</div>' +
+                '<div style="color:#666;font-size:0.85rem;margin-top:15px;">' + escapeHtml(booking.email_message || 'Demo only - No real payment') + '</div>' +
+                localInvoiceButton +
+                pdfButton +
+                '</div>';
+            document.getElementById('bookingFinalSection').style.display = 'block';
+        }
+
+        function downloadDemoBookingPdf() {
+            if (!currentDemoBooking || !currentDemoBooking.pdf_download_url) return;
+            var link = document.createElement('a');
+            link.href = API_BASE + currentDemoBooking.pdf_download_url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function saveDemoBookingToLocalStorage(booking) {
+            try {
+                var bookings = JSON.parse(localStorage.getItem('assistant_demo_bookings') || '[]');
+                bookings.unshift(booking);
+                localStorage.setItem('assistant_demo_bookings', JSON.stringify(bookings.slice(0, 15)));
+            } catch (error) {
+                console.error('Could not save booking locally:', error);
+            }
+        }
+
+        function saveDemoInvoiceToLocalStorage(booking) {
+            try {
+                var invoices = JSON.parse(localStorage.getItem('assistant_demo_invoices') || '[]');
+                var invoiceRecord = {
+                    booking_ref: booking.booking_ref,
+                    saved_at: new Date().toISOString(),
+                    html: generateDemoInvoiceHtml(booking)
+                };
+                invoices = invoices.filter(function(item) {
+                    return item.booking_ref !== booking.booking_ref;
+                });
+                invoices.unshift(invoiceRecord);
+                localStorage.setItem('assistant_demo_invoices', JSON.stringify(invoices.slice(0, 15)));
+            } catch (error) {
+                console.error('Could not save invoice locally:', error);
+            }
+        }
+
+        function generateDemoInvoiceHtml(booking) {
+            var bookingType = String(booking.booking_type || '').charAt(0).toUpperCase() + String(booking.booking_type || '').slice(1);
+            return '<!DOCTYPE html>' +
+                '<html><head><meta charset="UTF-8"><title>Invoice - ' + escapeAttribute(booking.booking_ref) + '</title>' +
+                '<style>body{font-family:Poppins,Arial,sans-serif;max-width:840px;margin:0 auto;padding:24px;background:#fffaf5;color:#2d1b13;} .card{background:#fff;border:1px solid #f0dec8;border-radius:18px;padding:24px;box-shadow:0 14px 34px rgba(45,27,19,0.08);} .head{border-bottom:2px solid #f28c38;padding-bottom:14px;margin-bottom:20px;} .logo{font-size:28px;font-weight:700;color:#f28c38;} .muted{color:#7b6b60;font-size:13px;} .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0;} .item{background:#fff8ef;border:1px solid #f5d7b8;border-radius:12px;padding:12px;} .label{font-size:12px;color:#8b735f;text-transform:uppercase;letter-spacing:.06em;} .value{font-size:16px;font-weight:600;margin-top:4px;} .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f6eadc;} .total{margin-top:20px;padding:18px;border-radius:14px;background:#fff1df;text-align:right;} .total strong{font-size:28px;color:#f28c38;} </style></head><body>' +
+                '<div class="card"><div class="head"><div class="logo">Ghoomne Chalo</div><div class="muted">Demo booking invoice saved from assistant page</div></div>' +
+                '<div class="grid">' +
+                    '<div class="item"><div class="label">Booking Ref</div><div class="value">' + escapeHtml(booking.booking_ref) + '</div></div>' +
+                    '<div class="item"><div class="label">Status</div><div class="value">' + escapeHtml(booking.status || 'Confirmed') + '</div></div>' +
+                '</div>' +
+                '<div class="row"><span>Booking Type</span><strong>' + escapeHtml(bookingType) + '</strong></div>' +
+                '<div class="row"><span>Provider</span><strong>' + escapeHtml(booking.offer.title) + '</strong></div>' +
+                '<div class="row"><span>Location</span><strong>' + escapeHtml(booking.offer.location) + '</strong></div>' +
+                '<div class="row"><span>Travel Date</span><strong>' + escapeHtml(booking.travel_date || 'Not specified') + '</strong></div>' +
+                '<div class="row"><span>Customer</span><strong>' + escapeHtml((booking.customer && booking.customer.name) || '') + '</strong></div>' +
+                '<div class="row"><span>Email</span><strong>' + escapeHtml((booking.customer && booking.customer.email) || '') + '</strong></div>' +
+                '<div class="row"><span>Phone</span><strong>' + escapeHtml((booking.customer && booking.customer.phone) || '') + '</strong></div>' +
+                '<div class="total"><div class="muted">Total Amount</div><strong>INR ' + Number(booking.amount || 0).toLocaleString('en-IN') + '</strong></div>' +
+                '</div></body></html>';
+        }
+
+        function downloadDemoInvoiceToDevice() {
+            if (!currentDemoBooking) {
+                alert('No booking found');
+                return;
+            }
+            saveDemoBookingToLocalStorage(currentDemoBooking);
+            saveDemoInvoiceToLocalStorage(currentDemoBooking);
+            var invoiceHtml = generateDemoInvoiceHtml(currentDemoBooking);
+            var blob = new Blob([invoiceHtml], { type: 'text/html' });
+            var url = window.URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'Invoice_' + currentDemoBooking.booking_ref + '.html';
+            document.body.appendChild(link);
+            link.click();
+            window.URL.revokeObjectURL(url);
+            link.remove();
+        }
+
+        async function submitBooking(event) {
+            event.preventDefault();
+            if (!currentBookingType) {
+                alert('Please choose a booking type first.');
+                return;
+            }
+
+            var submitBtn = document.getElementById('bookingSubmitBtn');
+            var originalBtnText = submitBtn.textContent;
+            var bookingPayload = buildDemoBookingPayload();
+            var validationMessage = validateBookingPayload(bookingPayload);
+            if (validationMessage) {
+                alert(validationMessage);
+                return;
+            }
+            pendingBookingPayload = bookingPayload;
+            pendingBookingCustomer = null;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Finding options...';
+
+            try {
+                var response = await fetch(API_BASE + '/api/assistant/demo-bookings/options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingPayload)
+                });
+                var data = await response.json();
+                if (!response.ok) {
+                    throw new Error((data && data.error) || 'Could not load booking options');
+                }
+
+                pendingBookingPayload.demo_only = !!data.demo_only;
+                document.getElementById('bookingCustomerSection').style.display = 'none';
+                renderDemoBookingOptions(data.offers || []);
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+                document.getElementById('bookingOptionsSection').style.display = 'block';
+                document.getElementById('bookingOptionsGrid').innerHTML = '<div style="padding:14px;border:1px dashed #ef4444;border-radius:12px;color:#991b1b;">' + escapeHtml(error.message || 'Could not load options.') + '</div>';
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                toggleInlineMap(false);
+                closeSavedPlanModal();
+                closeBookingSection();
+                closeBookingForm();
+            }
+        });
+    </script>
+</body>
+</html>
