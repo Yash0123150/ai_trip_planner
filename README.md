@@ -59,3 +59,77 @@ Edit `backend/config.py` to customize:
 
 - The AI features use **Groq API** for fast AI responses
 - The app uses CORS to allow frontend-backend communication
+
+# Auto-Fill Booking Form Implementation Plan
+
+## Task Overview
+When user navigates to booking form, it should automatically fill all booking fields using:
+- Trip data (from plan page)
+- User profile data
+- Live location (if available)
+
+User can review and make changes before confirming.
+
+---
+
+## Files to Modify
+
+### 1. Backend: `backend/services/booking_agent_service.py`
+**Purpose:** Enhance autofill logic to better map trip data to booking form fields
+
+**Changes:**
+- Add more robust field mapping for each booking type
+- Improve date handling
+- Add fallback values
+
+### 2. Frontend: `frontend/booking.html`
+**Purpose:** Fix and enhance the auto-fill booking flow
+
+**Changes:**
+- Add proper form population from autofill API
+- Show prefilled form to user first (not skip to confirmation)
+- Allow user to edit fields before proceeding
+- Better error handling and user feedback
+
+---
+
+## Implementation Steps
+
+### Step 1: Enhance Backend Autofill Service
+- Enhance `build_booking_autofill()` to handle all booking types better
+- Ensure proper date format handling
+- Add more field mappings
+
+### Step 2: Update Frontend Booking Flow
+- Fix form field population
+- Show form first with prefilled data
+- Allow user to edit
+- Then proceed to search and confirmation
+
+### Step 3: Test the Flow
+- Create a trip in plan.html
+- Navigate to booking.html
+- Verify form is prefilled
+- Verify user can edit and confirm
+
+---
+
+## Data Flow
+
+```
+plan.html (user creates trip)
+    ↓ saves to localStorage
+localStorage['activeTripSession'] = { tripData, plan, etc. }
+    ↓
+booking.html loads
+    ↓ calls /api/booking-agent/autofill with trip_data + profile
+backend booking_agent_service.py
+    ↓ processes and returns form data
+booking.html receives autofill data
+    ↓ populates form fields
+User sees prefilled form
+    ↓ can edit if needed
+User clicks "Search Options"
+    ↓ continues normal flow
+```
+
