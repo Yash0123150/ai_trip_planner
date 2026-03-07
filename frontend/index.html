@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghoomne Chaloo - Discover India</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Root Variables --- */
+        :root {
+            --primary-orange: #f28c38;
+            --dark-brown: #2d1b13;
+            --bg-light: #faf9f6;
+            --white: #ffffff;
+            --text-grey: #666;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-light); color: var(--dark-brown); line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
+
+        /* --- Navigation --- */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 12px 8%;
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo { font-weight: 700; color: var(--primary-orange); font-size: 1.4rem; text-transform: capitalize; }
+        .nav-links { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
+        .nav-links a { text-decoration: none; color: var(--text-grey); font-weight: 500; font-size: 0.9rem; margin: 0 15px; transition: 0.3s; }
+        .nav-links a:hover { color: var(--primary-orange); }
+
+        .nav-user { position: relative; display: inline-block; cursor: pointer; font-weight: 600; padding: 5px 10px; }
+        .nav-user ul { 
+            display: none; position: absolute; right: 0; top: 100%; 
+            background: white; list-style: none; box-shadow: 0 8px 16px rgba(0,0,0,0.1); 
+            border-radius: 8px; padding: 10px 0; min-width: 150px; 
+        }
+        .nav-user:hover ul { display: block; }
+        .nav-user ul li a { display: block; padding: 10px 20px; text-decoration: none; color: var(--dark-brown); font-size: 0.85rem; }
+        .nav-user ul li a:hover { background: #fdf2e9; color: var(--primary-orange); }
+
+        /* --- Hero Section --- */
+        .hero {
+            min-height: 75vh;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('assets/hero-travel.jpg');
+            background-size: cover; background-position: center;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white;
+            padding: 80px 24px;
+        }
+        .hero h1 { font-size: 4rem; margin-bottom: 10px; }
+        .hero p { max-width: 700px; }
+        .btn-plan { background: var(--primary-orange); color: white; padding: 15px 40px; border: none; border-radius: 30px; font-weight: 600; cursor: pointer; font-size: 1.1rem; transition: 0.3s; }
+        .btn-plan:hover { transform: scale(1.05); }
+
+        /* --- Sections --- */
+        section { padding: 80px 8%; text-align: center; }
+        .section-title { font-size: 2.2rem; margin-bottom: 5px; }
+        .section-subtitle { color: var(--primary-orange); font-weight: 700; letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 40px; text-transform: uppercase; }
+
+        /* --- Destination Cards Grid --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .dest-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: 0.3s;
+            position: relative;
+            height: 400px;
+            cursor: pointer;
+        }
+        .dest-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .dest-card:hover img { transform: scale(1.1); }
+        
+        .card-info {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            padding: 30px 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white; text-align: left;
+        }
+        .card-info h3 { font-size: 1.5rem; }
+        .card-info span { font-size: 0.8rem; color: var(--primary-orange); font-weight: 700; }
+
+        /* --- Services Grid --- */
+        .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
+        .service-card { background: white; padding: 40px 20px; border-radius: 15px; border: 1px solid #f0f0f0; transition: 0.3s; }
+        .service-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .service-card .icon { font-size: 2.5rem; margin-bottom: 15px; display: block; }
+
+        /* --- Contact Form --- */
+        .contact-box { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; text-align: left; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0 20px 0; border: 1px solid #eee; border-radius: 8px; font-family: inherit; }
+        .btn-send { background: var(--dark-brown); color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-send:hover { background: var(--primary-orange); }
+
+        /* --- Footer --- */
+        footer { background: var(--dark-brown); color: #b5a499; padding: 60px 8% 20px 8%; text-align: left; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 50px; }
+        footer h3 { color: white; margin-bottom: 20px; }
+        .footer-bottom { text-align: center; border-top: 1px solid #3d2a21; margin-top: 40px; padding-top: 20px; font-size: 0.8rem; }
+
+        /* --- Modal Styles --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.58);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: linear-gradient(180deg, #fffaf4 0%, #ffffff 100%);
+            margin: 6% auto;
+            padding: 26px;
+            border-radius: 18px;
+            width: 92%;
+            max-width: 430px;
+            position: relative;
+            border: 1px solid #f3e7db;
+            box-shadow: 0 22px 45px rgba(45, 27, 19, 0.2);
+        }
+        .modal-content.profile-content { max-width: 620px; }
+        .modal-content h2 { margin-bottom: 4px; text-align: center; }
+        .modal-subtitle {
+            text-align: center;
+            color: #8e7f73;
+            font-size: 0.88rem;
+            margin-bottom: 18px;
+        }
+        .close {
+            position: absolute;
+            right: 16px;
+            top: 10px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            color: #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #eee;
+        }
+        .close:hover { color: var(--primary-orange); border-color: #f6c9a1; }
+
+        .auth-form { display: grid; gap: 12px; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field label {
+            font-size: 0.78rem;
+            color: #826c5d;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .auth-form input,
+        .auth-form select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #eadfd4;
+            border-radius: 10px;
+            background: #fff;
+            font-family: inherit;
+            margin: 0;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .auth-form input:focus,
+        .auth-form select:focus {
+            outline: none;
+            border-color: #f28c38;
+            box-shadow: 0 0 0 3px rgba(242, 140, 56, 0.16);
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .profile-grid .full { grid-column: 1 / -1; }
+
+        .auth-link {
+            margin-top: 14px;
+            text-align: center;
+            color: #7a6a5e;
+            font-size: 0.9rem;
+        }
+        .auth-link a { color: var(--primary-orange); text-decoration: none; font-weight: 600; }
+        .auth-link a:hover { text-decoration: underline; }
+
+        .auth-form .btn-send {
+            margin-top: 6px;
+            background: linear-gradient(135deg, #2d1b13, #5b3b2b);
+        }
+        .auth-form .btn-send:hover {
+            background: linear-gradient(135deg, #f28c38, #de7427);
+        }
+        
+        /* User logged in state */
+        .nav-user.logged-in .user-name { color: var(--primary-orange); }
+
+        @media (max-width: 1024px) {
+            .card-grid,
+            .services-grid,
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav { padding: 12px 20px; justify-content: center; }
+            .nav-links { width: 100%; gap: 8px 0; }
+            .nav-links a { margin: 0 10px; }
+            .hero { min-height: 62vh; padding: 72px 20px; }
+            .hero h1 { font-size: 2.7rem; line-height: 1.1; }
+            section { padding: 56px 20px; }
+            .card-grid,
+            .services-grid,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+            .dest-card { height: 320px; }
+            .contact-box { padding: 24px; }
+            .modal-content { margin: 12% auto; padding: 20px; }
+            .profile-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 2.2rem; }
+            .btn-plan { width: 100%; max-width: 280px; padding: 14px 24px; }
+            .section-title { font-size: 1.8rem; }
+            footer { padding: 48px 20px 20px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+   <nav>
+        <span>ghoomne chalo</span>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+        </div>
+                <div class="nav-user" id="navUser">
+            <span>&#128100;</span>
+            <ul>
+                <li><a href="#" id="menuLogin">Login</a></li>
+                <li><a href="#" id="menuProfile">Profile</a></li>
+                <li><a href="#" id="menuHelp">Help</a></li>
+                <li><a href="#" id="menuLogout">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            <h2>Login</h2>
+            <p class="modal-subtitle">Access your travel dashboard</p>
+            <form id="loginForm" class="auth-form">
+                <div class="field">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required>
+                </div>
+                <div class="field">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn-send">Login</button>
+            </form>
+            <p class="auth-link">Don't have an account? <a href="#" onclick="showRegisterModal()">Register</a></p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRegisterModal()">&times;</span>
+            <h2>Register</h2>
+            <p class="modal-subtitle">Create your account in seconds</p>
+            <form id="registerForm" class="auth-form">
+                <div class="field">
+                    <label for="regUsername">Username</label>
+                    <input type="text" id="regUsername" placeholder="Your name" required>
+                </div>
+                <div class="field">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" required>
+                </div>
+                <div class="field">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="Create password" required>
+                </div>
+                <button type="submit" class="btn-send">Register</button>
+            </form>
+            <p class="auth-link">Already have an account? <a href="#" onclick="showLoginModal()">Login</a></p>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content profile-content">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            <h2>My Profile</h2>
+            <p class="modal-subtitle">Keep your details updated for smoother bookings</p>
+            <form id="profileForm" class="auth-form">
+                <div class="profile-grid">
+                    <div class="field">
+                        <label for="profileName">Full Name</label>
+                        <input type="text" id="profileName" placeholder="Enter full name">
+                    </div>
+                    <div class="field">
+                        <label for="profilePhone">Phone Number</label>
+                        <input type="text" id="profilePhone" placeholder="+91 98XXXXXX10">
+                    </div>
+                    <div class="field full">
+                        <label for="profileAddress">Address</label>
+                        <input type="text" id="profileAddress" placeholder="Street, city, state">
+                    </div>
+                    <div class="field">
+                        <label for="profileIdProof">ID Proof Type</label>
+                        <select id="profileIdProof">
+                            <option value="">Select ID Proof Type</option>
+                            <option value="Aadhar">Aadhar Card</option>
+                            <option value="PAN">PAN Card</option>
+                            <option value="Passport">Passport</option>
+                            <option value="Driving License">Driving License</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="profileIdNumber">ID Number</label>
+                        <input type="text" id="profileIdNumber" placeholder="Enter ID number">
+                    </div>
+                </div>
+                <button type="submit" class="btn-send">Save Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <header id="home" class="hero">
+        <h1>Ghoomne Chaloo</h1>
+        <p>Your AI-powered travel companion. Discover India like never before.</p>
+        <button class="btn-plan" onclick="goToPlanPage()">Plan My Trip &rarr;</button>
+    </header>
+
+    <section id="about">
+        <p class="section-subtitle">Top Destinations</p>
+        <h2 class="section-title">Explore India</h2>
+        <div class="card-grid">
+            <div class="dest-card">
+                <img src="assets/dest-goa.jpg" alt="Goa">
+                <div class="card-info"><span>4-5 DAYS</span><h3>Goa</h3></div>
+            </div>
+            <div class="dest-card">
+                <img src="assets/dest-hampi.jpg" alt="Hampi">
+                <div class="card-info"><span>3-4 DAYS</span><h3>Hampi</h3></div>
+            </div>
+            <div class="dest-card">
+                <img src="assets/dest-kerala.jpg" alt="Kerala">
+                <div class="card-info"><span>6-8 DAYS</span><h3>Kerala</h3></div>
+            </div>
+
+            <div class="dest-card">
+                <img src="assets/dest-rajasthan.jpg" alt="Rajasthan">
+                <div class="card-info"><span>6-9 DAYS</span><h3>Rajasthan</h3></div>
+            </div>
+            <div class="dest-card">
+                <img src="assets/dest-varanasi.jpg" alt="Varanasi">
+                <div class="card-info"><span>2-3 DAYS</span><h3>Varanasi</h3></div>
+            </div>
+            <div class="dest-card">
+                <img src="assets/dest-manali.jpg" alt="Manali">
+                <div class="card-info"><span>4-6 DAYS</span><h3>Manali</h3></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" style="background-color: #fff;">
+        <p class="section-subtitle">Why Choose Us</p>
+        <h2 class="section-title">Our Services</h2>
+        <div class="services-grid">
+            <div class="service-card"><span class="icon">🗺️</span><h3>AI Planning</h3><p>Smart day-by-day itineraries.</p></div>
+            <div class="service-card"><span class="icon">🏨</span><h3>Stay Guide</h3><p>Curated local accommodations.</p></div>
+            <div class="service-card"><span class="icon">🍲</span><h3>Food Finder</h3><p>Best local cuisine advice.</p></div>
+        </div>
+    </section>
+
+    <section id="contact">
+        <p class="section-subtitle">Get In Touch</p>
+        <h2 class="section-title">Contact Us</h2>
+        <div class="contact-box">
+            <form>
+                <label>Name</label><input type="text" placeholder="Your Name">
+                <label>Email</label><input type="email" placeholder="Your Email">
+                <label>Message</label><textarea rows="4" placeholder="Your Message"></textarea>
+                <button type="submit" class="btn-send">Send Message</button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-grid">
+            <div><h3>Ghoomne Chaloo</h3><p>Your AI travel companion for India.</p></div>
+            <div><h3>Links</h3><p>Home</p><p>Services</p><p>Plan Trip</p></div>
+            <div><h3>Contact</h3><p>hello@ghoomnechalo.com</p><p>+91 98765 43210</p></div>
+        </div>
+        <div class="footer-bottom"><p>© 2026 Ghoomne Chaloo. All rights reserved.</p></div>
+    </footer>
+
+    <script>
+        const API_BASE = (window.location.protocol.startsWith('http') && window.location.port === '5000')
+            ? window.location.origin
+            : 'http://127.0.0.1:5000';
+        let currentUser = null;
+        let authToken = localStorage.getItem('token');
+
+        async function readJsonResponse(res) {
+            const text = await res.text();
+            if (!text) {
+                return { message: '' };
+            }
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                return { message: text.trim() };
+            }
+        }
+
+        function getApiMessage(data, fallback, status) {
+            const message = (data && typeof data.message === 'string' && data.message.trim()) || '';
+            if (message) {
+                return message;
+            }
+            if (status === 400) {
+                return 'Please check your details and try again.';
+            }
+            if (status === 401) {
+                return 'Invalid email or password.';
+            }
+            if (status >= 500) {
+                return 'Server error. Please try again.';
+            }
+            return fallback + (status ? ' (HTTP ' + status + ')' : '');
+        }
+
+        // Check auth on load
+        checkAuth();
+
+        // Modal functions
+        function showLoginModal() { document.getElementById('loginModal').style.display = 'block'; }
+        function closeLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
+        function showRegisterModal() { closeLoginModal(); document.getElementById('registerModal').style.display = 'block'; }
+        function closeRegisterModal() { document.getElementById('registerModal').style.display = 'none'; }
+        function showProfileModal() { document.getElementById('profileModal').style.display = 'block'; loadProfile(); }
+        function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Check authentication
+        async function checkAuth() {
+            if (!authToken) {
+                updateNav(false);
+                return;
+            }
+            try {
+                const res = await fetch(API_BASE + '/api/auth/check', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await readJsonResponse(res);
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    updateNav(true);
+                } else {
+                    logout();
+                }
+            } catch (e) { logout(); }
+        }
+
+        // Update navigation based on auth state
+        function updateNav(isLoggedIn) {
+            const navUser = document.getElementById('navUser');
+            if (isLoggedIn) {
+                navUser.innerHTML = '<span class="user-name">' + currentUser.username + ' &#128100;</span><ul><li><a href="#" id="menuProfile">Profile</a></li><li><a href="#" id="menuHelp">Help</a></li><li><a href="#" id="menuLogout">Logout</a></li></ul>';
+                document.getElementById('menuProfile').onclick = function(e) { e.preventDefault(); showProfileModal(); };
+                document.getElementById('menuHelp').onclick = function(e) { e.preventDefault(); alert('Help: Login first, then open Profile to update your details.'); };
+                document.getElementById('menuLogout').onclick = function(e) { e.preventDefault(); logout(); };
+            } else {
+                navUser.innerHTML = '<span>&#128100;</span><ul><li><a href="#" id="menuLogin">Login</a></li><li><a href="#" id="menuProfile">Profile</a></li><li><a href="#" id="menuHelp">Help</a></li><li><a href="#" id="menuLogout">Logout</a></li></ul>';
+                document.getElementById('menuLogin').onclick = function(e) { e.preventDefault(); showLoginModal(); };
+                document.getElementById('menuProfile').onclick = function(e) { e.preventDefault(); showLoginModal(); };
+                document.getElementById('menuHelp').onclick = function(e) { e.preventDefault(); alert('Help: Use Login to sign in, then open Profile.'); };
+                document.getElementById('menuLogout').onclick = function(e) { e.preventDefault(); alert('You are not logged in.'); };
+            }
+        }
+
+        function goToPlanPage() {
+            if (!authToken) {
+                alert('Please login first to open trip planning.');
+                showLoginModal();
+                return;
+            }
+            window.location.href = 'plan.html';
+        }
+
+        // Login form
+        document.getElementById('loginForm').onsubmit = async function(e) {
+            e.preventDefault();
+            var email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            var password = document.getElementById('loginPassword').value;
+            try {
+                var res = await fetch(API_BASE + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                var data = await readJsonResponse(res);
+                if (res.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', authToken);
+                    closeLoginModal();
+                    updateNav(true);
+                } else { alert(getApiMessage(data, 'Login failed', res.status)); }
+            } catch (e) { alert('Error: ' + e.message); }
+        };
+
+        // Register form
+        document.getElementById('registerForm').onsubmit = async function(e) {
+            e.preventDefault();
+            var username = document.getElementById('regUsername').value.trim();
+            var email = document.getElementById('regEmail').value.trim().toLowerCase();
+            var password = document.getElementById('regPassword').value;
+            if (!username || !email || !password) {
+                alert('Email, username, and password are required');
+                return;
+            }
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
+            try {
+                var res = await fetch(API_BASE + '/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, email: email, password: password })
+                });
+                var data = await readJsonResponse(res);
+                if (res.ok) {
+                    alert('Registration successful! Please login.');
+                    closeRegisterModal();
+                    showLoginModal();
+                } else { alert(getApiMessage(data, 'Registration failed', res.status)); }
+            } catch (e) { alert('Error: ' + e.message); }
+        };
+
+        // Profile form
+        function loadProfile() {
+            if (currentUser) {
+                document.getElementById('profileName').value = currentUser.name || '';
+                document.getElementById('profilePhone').value = currentUser.phone || '';
+                document.getElementById('profileAddress').value = currentUser.address || '';
+                document.getElementById('profileIdProof').value = currentUser.id_proof_type || '';
+                document.getElementById('profileIdNumber').value = currentUser.id_proof_number || '';
+            }
+        }
+
+        document.getElementById('profileForm').onsubmit = async function(e) {
+            e.preventDefault();
+            var name = document.getElementById('profileName').value;
+            var phone = document.getElementById('profilePhone').value;
+            var address = document.getElementById('profileAddress').value;
+            var id_proof_type = document.getElementById('profileIdProof').value;
+            var id_proof_number = document.getElementById('profileIdNumber').value;
+            try {
+                var res = await fetch(API_BASE + '/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ name: name, phone: phone, address: address, id_proof_type: id_proof_type, id_proof_number: id_proof_number })
+                });
+                var data = await readJsonResponse(res);
+                if (res.ok) {
+                    currentUser = data.user;
+                    alert('Profile updated successfully!');
+                    closeProfileModal();
+                } else { alert(getApiMessage(data, 'Update failed', res.status)); }
+            } catch (e) { alert('Error: ' + e.message); }
+        };
+
+        // Logout
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('token');
+            updateNav(false);
+        }
+    </script>
+
+</body>
+</html>
+
+
+
+
